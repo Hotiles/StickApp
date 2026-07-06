@@ -25,10 +25,48 @@
   --accent-soft: #fbe9f2;
   --band: rgba(244, 194, 219, 0.4);
   --danger: #c25b5b;
+  --success: #4a7a52;
   --border: #eadfd6;
   --shadow: 0 1px 3px rgba(61, 52, 54, 0.08), 0 4px 14px rgba(61, 52, 54, 0.06);
+  --backdrop: rgba(61, 52, 54, 0.45);
+  --pdf-bg: #ece5de;
+  --pdf-paper: #ffffff;
   --radius: 14px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+
+/* Mörkt läge: varm, dov aubergine — skonsam vid kvällsstickning i soffan */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #211a1e;
+    --surface: #2d2429;
+    --text: #f1e7eb;
+    --text-dim: #a8989f;
+    --accent: #b97a9a;
+    --accent-strong: #d98cb2;
+    --accent-soft: #3a2a33;
+    --danger: #e08484;
+    --success: #93c69e;
+    --border: #43363d;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(0, 0, 0, 0.28);
+    --backdrop: rgba(12, 8, 10, 0.6);
+    --pdf-bg: #171114;
+    --pdf-paper: #d8d0c8;
+    color-scheme: dark;
+  }
+
+  /* Dämpa den bländvita PDF-sidan utan att invertera mönstret */
+  .pdf-canvas {
+    filter: brightness(0.85) contrast(0.98) sepia(0.12);
+  }
+
+  /* Ljus accent i mörkt läge → mörk text på fyllda ytor för läsbarhet */
+  .btn-primary,
+  .shortcut-primary,
+  .folder-chip-active {
+    color: #2b1420;
+  }
 }
 
 * {
@@ -379,7 +417,7 @@ input[type='range'] {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(61, 52, 54, 0.45);
+  background: var(--backdrop);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -503,7 +541,7 @@ input[type='range'] {
   position: relative;
   overflow: hidden;
   touch-action: none;
-  background: #ece5de;
+  background: var(--pdf-bg);
   outline: none;
   min-height: 0;
 }
@@ -512,7 +550,7 @@ input[type='range'] {
   position: absolute;
   top: 0;
   left: 0;
-  background: #fff;
+  background: var(--pdf-paper);
   box-shadow: 0 2px 12px rgba(61, 52, 54, 0.18);
   will-change: transform;
 }
@@ -928,7 +966,7 @@ input[type='range'] {
 .settings-message {
   margin: 0;
   font-size: 14px;
-  color: #4a7a52;
+  color: var(--success);
   font-weight: 600;
 }
 

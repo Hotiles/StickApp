@@ -5,6 +5,7 @@ import Modal from '../ui/Modal.jsx';
 import PatternThumb from '../patterns/PatternThumb.jsx';
 import { YarnColorPicker, yarnColorValue, randomYarnColorId } from '../ui/yarnColors.jsx';
 import YarnBall from '../ui/YarnBall.jsx';
+import { SkeletonCards } from '../ui/Skeleton.jsx';
 
 export default function HomeView() {
   const [projects, setProjects] = useState(null);
@@ -75,6 +76,13 @@ export default function HomeView() {
             </span>
             <span className="project-card-arrow">›</span>
           </button>
+        )}
+
+        {projects === null && (
+          <section>
+            <h2 className="section-title">Pågående projekt</h2>
+            <SkeletonCards count={2} />
+          </section>
         )}
 
         {projects !== null && (projects.length === 0 || restProjects.length > 0) && (

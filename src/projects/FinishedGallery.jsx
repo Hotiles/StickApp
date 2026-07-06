@@ -4,6 +4,7 @@ import { listProjects } from '../storage/storage.js';
 import TopBar from '../ui/TopBar.jsx';
 import { PhotoThumb } from './FinishForm.jsx';
 import YarnBall from '../ui/YarnBall.jsx';
+import { SkeletonTiles } from '../ui/Skeleton.jsx';
 
 export default function FinishedGallery() {
   const [projects, setProjects] = useState(null);
@@ -16,7 +17,9 @@ export default function FinishedGallery() {
     <div className="view">
       <TopBar title="Färdiga projekt" backTo="/" />
       <main className="view-body">
-        {projects === null ? null : projects.length === 0 ? (
+        {projects === null ? (
+          <SkeletonTiles count={4} />
+        ) : projects.length === 0 ? (
           <div className="empty-state">
             <YarnBall />
             <p>Inga färdiga projekt än.</p>

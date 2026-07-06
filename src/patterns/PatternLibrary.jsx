@@ -14,6 +14,7 @@ import TopBar from '../ui/TopBar.jsx';
 import Modal from '../ui/Modal.jsx';
 import PatternThumb from './PatternThumb.jsx';
 import YarnBall from '../ui/YarnBall.jsx';
+import { SkeletonTiles } from '../ui/Skeleton.jsx';
 import { NewProjectModal } from '../app/HomeView.jsx';
 
 /*
@@ -110,7 +111,9 @@ export default function PatternLibrary() {
 
       <main className="view-body">
         {error && <p className="form-error">{error}</p>}
-        {patterns === null ? null : patterns.length === 0 ? (
+        {patterns === null ? (
+          <SkeletonTiles count={4} />
+        ) : patterns.length === 0 ? (
           <div className="empty-state">
             <YarnBall />
             <p>Inga mönster här än.</p>

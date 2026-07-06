@@ -467,6 +467,11 @@ input[type='range'] {
   margin: 0;
 }
 
+.yarn-ball {
+  margin-bottom: 4px;
+  opacity: 0.9;
+}
+
 .empty-state-hint {
   font-size: 14px;
 }

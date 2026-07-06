@@ -13,6 +13,7 @@ import { importPdfFile } from './importPattern.js';
 import TopBar from '../ui/TopBar.jsx';
 import Modal from '../ui/Modal.jsx';
 import PatternThumb from './PatternThumb.jsx';
+import YarnBall from '../ui/YarnBall.jsx';
 import { NewProjectModal } from '../app/HomeView.jsx';
 
 /*
@@ -111,6 +112,7 @@ export default function PatternLibrary() {
         {error && <p className="form-error">{error}</p>}
         {patterns === null ? null : patterns.length === 0 ? (
           <div className="empty-state">
+            <YarnBall />
             <p>Inga mönster här än.</p>
             <p className="empty-state-hint">
               Tryck på ”+ PDF” för att importera ett mönster — eller dela en PDF till Stickan från en

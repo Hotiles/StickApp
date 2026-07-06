@@ -4,6 +4,7 @@ import { listProjects, getSettings, listPatterns, createProject } from '../stora
 import Modal from '../ui/Modal.jsx';
 import PatternThumb from '../patterns/PatternThumb.jsx';
 import { YarnColorPicker, yarnColorValue, randomYarnColorId } from '../ui/yarnColors.jsx';
+import YarnBall from '../ui/YarnBall.jsx';
 
 export default function HomeView() {
   const [projects, setProjects] = useState(null);
@@ -81,6 +82,7 @@ export default function HomeView() {
           <h2 className="section-title">{hero ? 'Fler pågående projekt' : 'Pågående projekt'}</h2>
           {projects.length === 0 ? (
             <div className="empty-state">
+              <YarnBall />
               <p>Inga pågående projekt.</p>
               <p className="empty-state-hint">Tryck på ”Nytt projekt” för att komma igång!</p>
             </div>

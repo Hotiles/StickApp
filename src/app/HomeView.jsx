@@ -26,6 +26,15 @@ export default function HomeView() {
     (!settings.lastBackupAt ||
       Date.now() - new Date(settings.lastBackupAt).getTime() > 30 * 24 * 60 * 60 * 1000);
 
+  // Hjältekortet: senast öppnade pågående projektet — ett tryck och du är
+  // tillbaka på rätt varv. Faller tillbaka på det senast uppdaterade.
+  const hero =
+    (projects &&
+      settings &&
+      (projects.find((p) => p.id === settings.lastOpenedProjectId) ?? projects[0])) ||
+    null;
+  const restProjects = hero ? projects.filter((p) => p.id !== hero.id) : projects;
+
   return (
     <div className="view">
       <header className="home-header">
@@ -45,16 +54,39 @@ export default function HomeView() {
           </button>
         )}
 
+        {hero && (
+          <button
+            className="hero-card"
+            style={{ '--project-color': yarnColorValue(hero.color) }}
+            onClick={() => navigate(`/projekt/${hero.id}`)}
+          >
+            {hero.patternId && patternById[hero.patternId] && (
+              <PatternThumb pattern={patternById[hero.patternId]} className="hero-thumb" />
+            )}
+            <span className="hero-text">
+              <span className="hero-eyebrow">Fortsätt sticka</span>
+              <span className="hero-name">{hero.name}</span>
+              {hero.counters?.[0] && (
+                <span className="hero-meta">
+                  {hero.counters[0].label} {hero.counters[0].value}
+                </span>
+              )}
+            </span>
+            <span className="project-card-arrow">›</span>
+          </button>
+        )}
+
+        {projects !== null && (projects.length === 0 || restProjects.length > 0) && (
         <section>
-          <h2 className="section-title">Pågående projekt</h2>
-          {projects === null ? null : projects.length === 0 ? (
+          <h2 className="section-title">{hero ? 'Fler pågående projekt' : 'Pågående projekt'}</h2>
+          {projects.length === 0 ? (
             <div className="empty-state">
               <p>Inga pågående projekt.</p>
               <p className="empty-state-hint">Tryck på ”Nytt projekt” för att komma igång!</p>
             </div>
           ) : (
             <ul className="card-list">
-              {projects.map((p) => (
+              {restProjects.map((p) => (
                 <li key={p.id}>
                   <button
                     className="project-card"
@@ -75,6 +107,7 @@ export default function HomeView() {
             </ul>
           )}
         </section>
+        )}
 
         <section className="home-shortcuts">
           <button className="shortcut shortcut-primary" onClick={() => setShowNewProject(true)}>

@@ -1,5 +1,21 @@
 /* ===== Stickan – bas ===== */
+
+/*
+ * Fraunces (SIL Open Font License) — självhostad, latin-subset.
+ * Variabel vikt 400–700 + optisk storlek: ger rubrikerna hantverkskänsla
+ * utan externa anrop (specen: inga fonter från CDN i runtime).
+ */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fraunces-latin.woff2') format('woff2');
+}
+
 :root {
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --bg: #faf6f2;
   --surface: #ffffff;
   --text: #3d3436;
@@ -30,7 +46,7 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.45;
   overscroll-behavior: none;
@@ -83,8 +99,10 @@ button {
 
 .topbar-title {
   flex: 1;
-  font-size: 18px;
-  font-weight: 650;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -113,8 +131,10 @@ button {
 }
 
 .home-title {
-  font-size: 28px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 650;
+  font-variation-settings: 'opsz' 40;
   margin: 0;
   color: var(--accent-strong);
 }
@@ -168,8 +188,9 @@ button {
 
 .project-card-name {
   flex: 1;
-  font-weight: 650;
-  font-size: 17px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
 }
 
 .project-card-meta {
@@ -399,8 +420,9 @@ input[type='range'] {
 
 .modal-title {
   margin: 0 0 14px;
-  font-size: 18px;
-  font-weight: 650;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .modal-actions {
@@ -751,8 +773,9 @@ input[type='range'] {
 
 .gallery-name {
   padding: 10px 12px;
-  font-weight: 650;
-  font-size: 15px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
   text-align: left;
 }
 

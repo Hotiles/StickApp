@@ -149,6 +149,12 @@ export default function HomeView() {
             </span>
             Färdiga projekt
           </button>
+          <button className="shortcut" onClick={() => navigate('/masktathet')}>
+            <span className="shortcut-icon">
+              <RulerIcon />
+            </span>
+            Masktäthet
+          </button>
         </section>
       </main>
 
@@ -238,6 +244,15 @@ function PdfIcon() {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
+
+function RulerIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <rect x="2" y="8" width="20" height="8" rx="2" />
+      <path d="M6 8v3M10 8v4M14 8v3M18 8v4" />
     </svg>
   );
 }

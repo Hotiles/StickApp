@@ -117,12 +117,13 @@ export async function getPattern(id) {
   return getActive(STORES.patterns, id);
 }
 
-export async function createPattern({ name, folderId, fileBlobId, fileSize, pageCount }) {
+export async function createPattern({ name, folderId, fileBlobId, thumbBlobId = null, fileSize, pageCount }) {
   const db = await getDb();
   const pattern = newEntity({
     name: name.trim(),
     folderId: folderId ?? null,
     fileBlobId,
+    thumbBlobId,
     fileSize,
     pageCount,
   });
@@ -137,6 +138,7 @@ export async function updatePattern(id, changes) {
 export async function deletePattern(id) {
   const pattern = await getActive(STORES.patterns, id);
   if (pattern?.fileBlobId) await deleteBlobHard(pattern.fileBlobId);
+  if (pattern?.thumbBlobId) await deleteBlobHard(pattern.thumbBlobId);
   return softDelete(STORES.patterns, id);
 }
 

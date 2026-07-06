@@ -2,15 +2,22 @@ import { useEffect, useState } from 'react';
 import { navigate } from './router.jsx';
 import { listProjects, getSettings, listPatterns, createProject } from '../storage/storage.js';
 import Modal from '../ui/Modal.jsx';
+import PatternThumb from '../patterns/PatternThumb.jsx';
 
 export default function HomeView() {
   const [projects, setProjects] = useState(null);
   const [settings, setSettings] = useState(null);
+  const [patternById, setPatternById] = useState({});
   const [showNewProject, setShowNewProject] = useState(false);
 
   useEffect(() => {
     listProjects('pågående').then(setProjects);
     getSettings().then(setSettings);
+    listPatterns().then((all) => {
+      const map = {};
+      for (const p of all) map[p.id] = p;
+      setPatternById(map);
+    });
   }, []);
 
   const needsBackup =
@@ -49,6 +56,9 @@ export default function HomeView() {
               {projects.map((p) => (
                 <li key={p.id}>
                   <button className="project-card" onClick={() => navigate(`/projekt/${p.id}`)}>
+                    {p.patternId && patternById[p.patternId] && (
+                      <PatternThumb pattern={patternById[p.patternId]} className="project-card-thumb" />
+                    )}
                     <span className="project-card-name">{p.name}</span>
                     <span className="project-card-meta">
                       {p.counters?.[0] ? `${p.counters[0].label}: ${p.counters[0].value}` : ''}

@@ -15,6 +15,7 @@ import PdfViewer from '../pdf/PdfViewer.jsx';
 import CounterPanel from '../counters/CounterPanel.jsx';
 import Modal from '../ui/Modal.jsx';
 import FinishForm from './FinishForm.jsx';
+import PatternThumb from '../patterns/PatternThumb.jsx';
 
 /*
  * Projektvyn (§4.3): mönsterläge + räknarpanel. Allt state (sida, zoom,
@@ -345,11 +346,14 @@ function PatternPickerModal({ currentId, onClose, onPick }) {
           {patterns.map((p) => (
             <button
               key={p.id}
-              className={`menu-item ${p.id === currentId ? 'menu-item-active' : ''}`}
+              className={`menu-item menu-item-row ${p.id === currentId ? 'menu-item-active' : ''}`}
               onClick={() => onPick(p.id)}
             >
-              {p.name}
-              <span className="menu-item-meta">{p.pageCount} sidor</span>
+              <PatternThumb pattern={p} className="menu-item-thumb" />
+              <span className="menu-item-text">
+                {p.name}
+                <span className="menu-item-meta">{p.pageCount} sidor</span>
+              </span>
             </button>
           ))}
           {currentId && (

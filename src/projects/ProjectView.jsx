@@ -16,6 +16,7 @@ import CounterPanel from '../counters/CounterPanel.jsx';
 import Modal from '../ui/Modal.jsx';
 import FinishForm from './FinishForm.jsx';
 import PatternThumb from '../patterns/PatternThumb.jsx';
+import { YarnColorPicker, yarnColorValue } from '../ui/yarnColors.jsx';
 
 /*
  * Projektvyn (§4.3): mönsterläge + räknarpanel. Allt state (sida, zoom,
@@ -32,6 +33,7 @@ export default function ProjectView({ projectId }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [pickingPattern, setPickingPattern] = useState(false);
+  const [pickingColor, setPickingColor] = useState(false);
   const [settings, setSettings] = useState(null);
 
   const { doc, loading: pdfLoading, error: pdfError } = usePdfDocument(pdfBlob);
@@ -144,7 +146,7 @@ export default function ProjectView({ projectId }) {
   if (!project || !settings) return <div className="view loading-view">Laddar …</div>;
 
   return (
-    <div className="view project-view">
+    <div className="view project-view" style={{ '--project-color': yarnColorValue(project.color) }}>
       <header className="topbar">
         <button className="btn-icon topbar-back" onClick={() => navigate('/')} aria-label="Tillbaka">
           ‹
@@ -221,6 +223,15 @@ export default function ProjectView({ projectId }) {
               Byt namn
             </button>
             <button
+              className="menu-item"
+              onClick={() => {
+                setMenuOpen(false);
+                setPickingColor(true);
+              }}
+            >
+              Byt garnfärg
+            </button>
+            <button
               className="menu-item menu-item-danger"
               onClick={() => {
                 setMenuOpen(false);
@@ -282,6 +293,19 @@ export default function ProjectView({ projectId }) {
             navigate(`/fardiga/${updated.id}`);
           }}
         />
+      )}
+
+      {pickingColor && (
+        <Modal title="Garnfärg" onClose={() => setPickingColor(false)}>
+          <YarnColorPicker
+            value={project.color}
+            onChange={async (color) => {
+              const updated = await updateProject(projectId, { color });
+              setProject(updated);
+              setPickingColor(false);
+            }}
+          />
+        </Modal>
       )}
 
       {pickingPattern && (

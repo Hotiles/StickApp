@@ -3,6 +3,7 @@ import { navigate } from './router.jsx';
 import { listProjects, getSettings, listPatterns, createProject } from '../storage/storage.js';
 import Modal from '../ui/Modal.jsx';
 import PatternThumb from '../patterns/PatternThumb.jsx';
+import { YarnColorPicker, yarnColorValue, randomYarnColorId } from '../ui/yarnColors.jsx';
 
 export default function HomeView() {
   const [projects, setProjects] = useState(null);
@@ -55,7 +56,11 @@ export default function HomeView() {
             <ul className="card-list">
               {projects.map((p) => (
                 <li key={p.id}>
-                  <button className="project-card" onClick={() => navigate(`/projekt/${p.id}`)}>
+                  <button
+                    className="project-card"
+                    style={{ '--project-color': yarnColorValue(p.color) }}
+                    onClick={() => navigate(`/projekt/${p.id}`)}
+                  >
                     {p.patternId && patternById[p.patternId] && (
                       <PatternThumb pattern={patternById[p.patternId]} className="project-card-thumb" />
                     )}
@@ -99,6 +104,7 @@ export default function HomeView() {
 export function NewProjectModal({ onClose, defaultPatternId = null }) {
   const [name, setName] = useState('');
   const [patternId, setPatternId] = useState(defaultPatternId ?? '');
+  const [color, setColor] = useState(randomYarnColorId);
   const [patterns, setPatterns] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -111,7 +117,7 @@ export function NewProjectModal({ onClose, defaultPatternId = null }) {
     const trimmed = name.trim();
     if (!trimmed || saving) return;
     setSaving(true);
-    const project = await createProject({ name: trimmed, patternId: patternId || null });
+    const project = await createProject({ name: trimmed, patternId: patternId || null, color });
     navigate(`/projekt/${project.id}`);
   }
 
@@ -153,6 +159,10 @@ export function NewProjectModal({ onClose, defaultPatternId = null }) {
             ))}
           </select>
         </label>
+        <div className="field">
+          <span className="field-label">Garnfärg</span>
+          <YarnColorPicker value={color} onChange={setColor} />
+        </div>
       </form>
     </Modal>
   );

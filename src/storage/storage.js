@@ -168,12 +168,13 @@ export async function getProject(id) {
   return getActive(STORES.projects, id);
 }
 
-export async function createProject({ name, patternId = null }) {
+export async function createProject({ name, patternId = null, color = null }) {
   const db = await getDb();
   const project = newEntity({
     name: name.trim(),
     status: 'pågående',
     patternId,
+    color, // id i garnpaletten (yarnColors.js); null = appens accentfärg
     viewState: DEFAULT_VIEW_STATE(),
     counters: DEFAULT_COUNTERS(),
     yarn: '',

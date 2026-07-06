@@ -4,19 +4,27 @@ import { useLongPress } from '../ui/useLongPress.js';
 /*
  * En räknare: stor tryckyta, tryck = +1 med haptik/visuell feedback,
  * långtryck öppnar meny. Siffran tickar vid varje tryck och firar
- * jämna tiotal med en puls. Liten "−" i hörnet backar ett varv —
- * felräkning är vardag när man stickar.
+ * jämna tiotal (och uppnått mål) med en puls. Liten "−" i hörnet
+ * backar ett varv — felräkning är vardag när man stickar.
+ *
+ * Med mål satt (counter.target) visas "47 /120" och en tunn
+ * progresslinje längs kortets nederkant.
  */
 export default function Counter({ counter, onIncrement, onDecrement, onOpenMenu }) {
   const [flash, setFlash] = useState(false);
   const [milestone, setMilestone] = useState(false);
 
+  const target = counter.target || null;
+  const fraction = target ? Math.min(1, counter.value / target) : 0;
+  const done = target && counter.value >= target;
+
   const pressProps = useLongPress({
     onTap() {
       onIncrement();
       const next = counter.value + 1;
-      if (next > 0 && next % 10 === 0) {
-        if (navigator.vibrate) navigator.vibrate([15, 40, 25]);
+      const hitTarget = target && next === target;
+      if (hitTarget || (next > 0 && next % 10 === 0)) {
+        if (navigator.vibrate) navigator.vibrate(hitTarget ? [20, 40, 20, 40, 40] : [15, 40, 25]);
         setMilestone(true);
         setTimeout(() => setMilestone(false), 700);
       } else if (navigator.vibrate) {
@@ -32,15 +40,20 @@ export default function Counter({ counter, onIncrement, onDecrement, onOpenMenu 
   });
 
   return (
-    <div className={`counter ${flash ? 'counter-flash' : ''} ${milestone ? 'counter-milestone' : ''}`}>
+    <div
+      className={`counter ${flash ? 'counter-flash' : ''} ${milestone ? 'counter-milestone' : ''} ${
+        done ? 'counter-done' : ''
+      }`}
+    >
       <button
         className="counter-tap"
         {...pressProps}
-        aria-label={`${counter.label}: ${counter.value}. Tryck för att öka, håll för meny.`}
+        aria-label={`${counter.label}: ${counter.value}${target ? ` av ${target}` : ''}. Tryck för att öka, håll för meny.`}
       >
         <span className="counter-label">{counter.label}</span>
         <span className="counter-value" key={counter.value}>
           {counter.value}
+          {target ? <span className="counter-of"> /{target}</span> : null}
         </span>
       </button>
       <button
@@ -53,6 +66,13 @@ export default function Counter({ counter, onIncrement, onDecrement, onOpenMenu 
       >
         −
       </button>
+      {target ? (
+        <span
+          className="counter-progress"
+          style={{ transform: `scaleX(${fraction})` }}
+          aria-hidden="true"
+        />
+      ) : null}
     </div>
   );
 }

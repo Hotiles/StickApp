@@ -13,6 +13,7 @@ const MAX_COUNTERS = 6;
 export default function CounterPanel({ counters, onChange }) {
   const [menuFor, setMenuFor] = useState(null); // counter-id
   const [renaming, setRenaming] = useState(null); // { id, label }
+  const [settingTarget, setSettingTarget] = useState(null); // { id, target }
 
   const menuCounter = counters.find((c) => c.id === menuFor);
 
@@ -74,6 +75,16 @@ export default function CounterPanel({ counters, onChange }) {
             >
               Byt namn
             </button>
+            <button
+              className="menu-item"
+              onClick={() => {
+                setSettingTarget({ id: menuCounter.id, target: menuCounter.target || '' });
+                setMenuFor(null);
+              }}
+            >
+              {menuCounter.target ? `Ändra mål (${menuCounter.target})` : 'Sätt mål …'}
+              <span className="menu-item-meta">T.ex. ”sticka till varv 120”</span>
+            </button>
             {counters.length < MAX_COUNTERS && (
               <button className="menu-item" onClick={addCounter}>
                 Lägg till räknare
@@ -85,6 +96,54 @@ export default function CounterPanel({ counters, onChange }) {
               </button>
             )}
           </div>
+        </Modal>
+      )}
+
+      {settingTarget && (
+        <Modal
+          title="Mål för räknaren"
+          onClose={() => setSettingTarget(null)}
+          actions={
+            <>
+              <button className="btn" onClick={() => setSettingTarget(null)}>
+                Avbryt
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  const n = parseInt(settingTarget.target, 10);
+                  updateCounter(settingTarget.id, { target: n > 0 ? n : null });
+                  setSettingTarget(null);
+                }}
+              >
+                Spara
+              </button>
+            </>
+          }
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const n = parseInt(settingTarget.target, 10);
+              updateCounter(settingTarget.id, { target: n > 0 ? n : null });
+              setSettingTarget(null);
+            }}
+          >
+            <label className="field">
+              <span className="field-label">Räkna till (lämna tomt för att ta bort målet)</span>
+              <input
+                className="input"
+                autoFocus
+                type="number"
+                inputMode="numeric"
+                min="1"
+                max="99999"
+                value={settingTarget.target}
+                onChange={(e) => setSettingTarget({ ...settingTarget, target: e.target.value })}
+                placeholder="T.ex. 120"
+              />
+            </label>
+          </form>
         </Modal>
       )}
 

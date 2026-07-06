@@ -39,6 +39,7 @@ export default function CounterPanel({ counters, onChange }) {
           key={counter.id}
           counter={counter}
           onIncrement={() => updateCounter(counter.id, { value: counter.value + 1 })}
+          onDecrement={() => updateCounter(counter.id, { value: Math.max(0, counter.value - 1) })}
           onOpenMenu={() => setMenuFor(counter.id)}
         />
       ))}

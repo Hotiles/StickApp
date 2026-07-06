@@ -6,6 +6,7 @@ import PatternThumb from '../patterns/PatternThumb.jsx';
 import { YarnColorPicker, yarnColorValue, randomYarnColorId } from '../ui/yarnColors.jsx';
 import YarnBall from '../ui/YarnBall.jsx';
 import { SkeletonCards } from '../ui/Skeleton.jsx';
+import DeadlineBadge from '../ui/DeadlineBadge.jsx';
 
 export default function HomeView() {
   const [projects, setProjects] = useState(null);
@@ -73,6 +74,11 @@ export default function HomeView() {
                   {hero.counters[0].label} {hero.counters[0].value}
                 </span>
               )}
+              {hero.deadline && (
+                <span>
+                  <DeadlineBadge deadline={hero.deadline} label={hero.deadlineLabel} />
+                </span>
+              )}
             </span>
             <span className="project-card-arrow">›</span>
           </button>
@@ -106,7 +112,14 @@ export default function HomeView() {
                     {p.patternId && patternById[p.patternId] && (
                       <PatternThumb pattern={patternById[p.patternId]} className="project-card-thumb" />
                     )}
-                    <span className="project-card-name">{p.name}</span>
+                    <span className="project-card-name">
+                      {p.name}
+                      {p.deadline && (
+                        <span className="project-card-deadline">
+                          <DeadlineBadge deadline={p.deadline} label={p.deadlineLabel} />
+                        </span>
+                      )}
+                    </span>
                     <span className="project-card-meta">
                       {p.counters?.[0] ? `${p.counters[0].label}: ${p.counters[0].value}` : ''}
                     </span>

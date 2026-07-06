@@ -336,6 +336,29 @@ button {
   font-size: 22px;
 }
 
+.deadline-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+.deadline-badge-urgent {
+  color: #fff;
+  background: var(--danger);
+}
+
+.project-card-deadline {
+  display: block;
+  margin-top: 4px;
+}
+
 .home-shortcuts {
   display: grid;
   grid-template-columns: 1fr 1fr;

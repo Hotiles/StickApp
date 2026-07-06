@@ -18,12 +18,20 @@ export default function Counter({ counter, onIncrement, onDecrement, onOpenMenu 
   const fraction = target ? Math.min(1, counter.value / target) : 0;
   const done = target && counter.value >= target;
 
+  // Upprepning: "gör ökning var 6:e varv" — visa var i repetitionen man är
+  // och lys upp på själva åtgärdsvarvet.
+  const repeatEvery = counter.repeatEvery || null;
+  const repeatPos = repeatEvery && counter.value > 0 ? ((counter.value - 1) % repeatEvery) + 1 : 0;
+  const repeatDue = repeatEvery && repeatPos === repeatEvery;
+  const repeatsDone = repeatEvery ? Math.floor(counter.value / repeatEvery) : 0;
+
   const pressProps = useLongPress({
     onTap() {
       onIncrement();
       const next = counter.value + 1;
       const hitTarget = target && next === target;
-      if (hitTarget || (next > 0 && next % 10 === 0)) {
+      const hitRepeat = repeatEvery && next % repeatEvery === 0;
+      if (hitTarget || hitRepeat || (next > 0 && next % 10 === 0)) {
         if (navigator.vibrate) navigator.vibrate(hitTarget ? [20, 40, 20, 40, 40] : [15, 40, 25]);
         setMilestone(true);
         setTimeout(() => setMilestone(false), 700);
@@ -43,18 +51,29 @@ export default function Counter({ counter, onIncrement, onDecrement, onOpenMenu 
     <div
       className={`counter ${flash ? 'counter-flash' : ''} ${milestone ? 'counter-milestone' : ''} ${
         done ? 'counter-done' : ''
-      }`}
+      } ${repeatDue ? 'counter-repeat-due' : ''}`}
     >
       <button
         className="counter-tap"
         {...pressProps}
-        aria-label={`${counter.label}: ${counter.value}${target ? ` av ${target}` : ''}. Tryck för att öka, håll för meny.`}
+        aria-label={`${counter.label}: ${counter.value}${target ? ` av ${target}` : ''}${
+          repeatEvery ? `, varv ${repeatPos} av ${repeatEvery} i repetitionen` : ''
+        }. Tryck för att öka, håll för meny.`}
       >
         <span className="counter-label">{counter.label}</span>
         <span className="counter-value" key={counter.value}>
-          {counter.value}
-          {target ? <span className="counter-of"> /{target}</span> : null}
+          {repeatEvery ? repeatPos : counter.value}
+          {repeatEvery ? (
+            <span className="counter-of"> /{repeatEvery}</span>
+          ) : target ? (
+            <span className="counter-of"> /{target}</span>
+          ) : null}
         </span>
+        {repeatEvery ? (
+          <span className="counter-sub">
+            {repeatDue ? 'Dags! ✨' : `Totalt ${counter.value}${repeatsDone ? ` · ${repeatsDone} rep` : ''}`}
+          </span>
+        ) : null}
       </button>
       <button
         className="counter-minus"

@@ -14,6 +14,7 @@ export default function CounterPanel({ counters, onChange }) {
   const [menuFor, setMenuFor] = useState(null); // counter-id
   const [renaming, setRenaming] = useState(null); // { id, label }
   const [settingTarget, setSettingTarget] = useState(null); // { id, target }
+  const [settingRepeat, setSettingRepeat] = useState(null); // { id, repeatEvery }
 
   const menuCounter = counters.find((c) => c.id === menuFor);
 
@@ -85,6 +86,18 @@ export default function CounterPanel({ counters, onChange }) {
               {menuCounter.target ? `Ändra mål (${menuCounter.target})` : 'Sätt mål …'}
               <span className="menu-item-meta">T.ex. ”sticka till varv 120”</span>
             </button>
+            <button
+              className="menu-item"
+              onClick={() => {
+                setSettingRepeat({ id: menuCounter.id, repeatEvery: menuCounter.repeatEvery || '' });
+                setMenuFor(null);
+              }}
+            >
+              {menuCounter.repeatEvery
+                ? `Ändra upprepning (var ${menuCounter.repeatEvery}:e)`
+                : 'Upprepning …'}
+              <span className="menu-item-meta">T.ex. ”ökning var 6:e varv”</span>
+            </button>
             {counters.length < MAX_COUNTERS && (
               <button className="menu-item" onClick={addCounter}>
                 Lägg till räknare
@@ -141,6 +154,57 @@ export default function CounterPanel({ counters, onChange }) {
                 value={settingTarget.target}
                 onChange={(e) => setSettingTarget({ ...settingTarget, target: e.target.value })}
                 placeholder="T.ex. 120"
+              />
+            </label>
+          </form>
+        </Modal>
+      )}
+
+      {settingRepeat && (
+        <Modal
+          title="Upprepning"
+          onClose={() => setSettingRepeat(null)}
+          actions={
+            <>
+              <button className="btn" onClick={() => setSettingRepeat(null)}>
+                Avbryt
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  const n = parseInt(settingRepeat.repeatEvery, 10);
+                  updateCounter(settingRepeat.id, { repeatEvery: n > 1 ? n : null });
+                  setSettingRepeat(null);
+                }}
+              >
+                Spara
+              </button>
+            </>
+          }
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const n = parseInt(settingRepeat.repeatEvery, 10);
+              updateCounter(settingRepeat.id, { repeatEvery: n > 1 ? n : null });
+              setSettingRepeat(null);
+            }}
+          >
+            <label className="field">
+              <span className="field-label">
+                Var N:e varv händer något? Räknaren visar var i repetitionen du är och lyser upp på
+                åtgärdsvarvet. (Lämna tomt för att ta bort.)
+              </span>
+              <input
+                className="input"
+                autoFocus
+                type="number"
+                inputMode="numeric"
+                min="2"
+                max="999"
+                value={settingRepeat.repeatEvery}
+                onChange={(e) => setSettingRepeat({ ...settingRepeat, repeatEvery: e.target.value })}
+                placeholder="T.ex. 6"
               />
             </label>
           </form>

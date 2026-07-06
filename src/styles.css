@@ -827,6 +827,23 @@ input[type='range'] {
   opacity: 1;
 }
 
+.counter-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.2;
+}
+
+/* Åtgärdsvarv i en upprepning: hela räknaren lyser i projektets färg */
+.counter-repeat-due {
+  outline: 2px solid var(--project-color, var(--accent));
+  outline-offset: -1px;
+}
+
+.counter-repeat-due .counter-sub {
+  color: var(--project-color, var(--accent-strong));
+  font-weight: 700;
+}
+
 .counter-milestone .counter-value {
   animation: counter-pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1);
 }

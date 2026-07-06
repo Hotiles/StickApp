@@ -518,6 +518,8 @@ input[type='range'] {
   position: fixed;
   inset: 0;
   background: var(--backdrop);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -527,12 +529,29 @@ input[type='range'] {
 .modal {
   background: var(--bg);
   border-radius: 20px 20px 0 0;
-  padding: 20px 20px calc(20px + var(--safe-bottom));
+  padding: 6px 20px calc(20px + var(--safe-bottom));
   width: 100%;
   max-width: 640px;
   max-height: 88vh;
   overflow-y: auto;
   animation: modal-in 0.18s ease-out;
+  transition: transform 0.2s ease;
+}
+
+.modal-handle {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 12px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.modal-handle::before {
+  content: '';
+  width: 42px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border);
 }
 
 @keyframes modal-in {
@@ -553,6 +572,10 @@ input[type='range'] {
   .modal {
     border-radius: 20px;
     max-width: 440px;
+    padding-top: 20px;
+  }
+  .modal-handle {
+    display: none;
   }
 }
 

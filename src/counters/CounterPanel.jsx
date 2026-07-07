@@ -2,19 +2,29 @@ import { useState } from 'react';
 import Counter from './Counter.jsx';
 import Modal from '../ui/Modal.jsx';
 import { uuid } from '../storage/storage.js';
+import { tickCounter, followersOf, followCandidates, nextTickMilestone } from './tick.js';
 
 /*
  * Räknarpanelen: dockad nertill, alltid synlig i mönsterläge.
- * Långtrycksmenyn: Backa 1 / Nollställ / Byt namn / Ta bort.
- * Räknare kan läggas till och tas bort (minst 1 kvar).
+ * Långtrycksmenyn: Backa 1 / Nollställ / Byt namn / Mål / Upprepning /
+ * Följ räknare. Räknare kan läggas till och tas bort (minst 1 kvar).
+ *
+ * Hänglåset (B2) gör alla räknare skrivskyddade — mot ficktryck och
+ * småbarnstummar, som markeringstejp fast digital. Låset ligger på
+ * projektet och överlever att appen dödas.
+ *
+ * Plus/minus går via tickCounter (tick.js) så att länkade räknare (B1)
+ * tickar med och livstidsräkningen totalTicks (B3) hålls ärlig.
  */
 const MAX_COUNTERS = 6;
 
-export default function CounterPanel({ counters, onChange }) {
+export default function CounterPanel({ counters, locked, onChange, onToggleLock }) {
   const [menuFor, setMenuFor] = useState(null); // counter-id
   const [renaming, setRenaming] = useState(null); // { id, label }
   const [settingTarget, setSettingTarget] = useState(null); // { id, target }
   const [settingRepeat, setSettingRepeat] = useState(null); // { id, repeatEvery }
+  const [pickingFollow, setPickingFollow] = useState(null); // counter-id
+  const [lockNudge, setLockNudge] = useState(false);
 
   const menuCounter = counters.find((c) => c.id === menuFor);
 
@@ -22,17 +32,40 @@ export default function CounterPanel({ counters, onChange }) {
     onChange(counters.map((c) => (c.id === id ? { ...c, ...changes } : c)));
   }
 
+  function tick(id, delta) {
+    onChange(tickCounter(counters, id, delta));
+  }
+
+  // Tryck på en låst räknare: dra blicken till hänglåset i stället
+  function nudgeLock() {
+    setLockNudge(true);
+    setTimeout(() => setLockNudge(false), 450);
+  }
+
   function addCounter() {
     if (counters.length >= MAX_COUNTERS) return;
-    onChange([...counters, { id: uuid(), label: `Räknare ${counters.length + 1}`, value: 0 }]);
+    onChange([
+      ...counters,
+      { id: uuid(), label: `Räknare ${counters.length + 1}`, value: 0, totalTicks: 0 },
+    ]);
     setMenuFor(null);
   }
 
   function removeCounter(id) {
     if (counters.length <= 1) return;
-    onChange(counters.filter((c) => c.id !== id));
+    // Följare till den borttagna blir vanliga räknare igen
+    onChange(
+      counters
+        .filter((c) => c.id !== id)
+        .map((c) => (c.followsId === id ? { ...c, followsId: null } : c))
+    );
     setMenuFor(null);
   }
+
+  const menuFollows = menuCounter?.followsId
+    ? counters.find((c) => c.id === menuCounter.followsId)
+    : null;
+  const menuFollowCandidates = menuCounter ? followCandidates(counters, menuCounter.id) : [];
 
   return (
     <div className="counter-panel">
@@ -40,11 +73,31 @@ export default function CounterPanel({ counters, onChange }) {
         <Counter
           key={counter.id}
           counter={counter}
-          onIncrement={() => updateCounter(counter.id, { value: counter.value + 1 })}
-          onDecrement={() => updateCounter(counter.id, { value: Math.max(0, counter.value - 1) })}
+          locked={locked}
+          followsLabel={
+            counter.followsId ? counters.find((c) => c.id === counter.followsId)?.label : null
+          }
+          nextMilestone={nextTickMilestone(counters, counter.id)}
+          onIncrement={() => tick(counter.id, 1)}
+          onDecrement={() => tick(counter.id, -1)}
+          onLockedTap={nudgeLock}
           onOpenMenu={() => setMenuFor(counter.id)}
         />
       ))}
+
+      <button
+        className={`counter-lockbtn ${locked ? 'is-locked' : ''} ${
+          lockNudge ? 'counter-lockbtn-nudge' : ''
+        }`}
+        onClick={() => {
+          if (navigator.vibrate) navigator.vibrate(locked ? [10, 30, 10] : 10);
+          onToggleLock();
+        }}
+        aria-pressed={locked}
+        aria-label={locked ? 'Lås upp räknarna' : 'Lås räknarna'}
+      >
+        <LockIcon open={!locked} />
+      </button>
 
       {menuCounter && (
         <Modal title={menuCounter.label} onClose={() => setMenuFor(null)}>
@@ -52,7 +105,7 @@ export default function CounterPanel({ counters, onChange }) {
             <button
               className="menu-item"
               onClick={() => {
-                updateCounter(menuCounter.id, { value: Math.max(0, menuCounter.value - 1) });
+                tick(menuCounter.id, -1);
                 setMenuFor(null);
               }}
             >
@@ -61,6 +114,7 @@ export default function CounterPanel({ counters, onChange }) {
             <button
               className="menu-item"
               onClick={() => {
+                // Nollställning rör varken totalTicks (B3) eller följare (B1)
                 updateCounter(menuCounter.id, { value: 0 });
                 setMenuFor(null);
               }}
@@ -98,6 +152,31 @@ export default function CounterPanel({ counters, onChange }) {
                 : 'Upprepning …'}
               <span className="menu-item-meta">T.ex. ”ökning var 6:e varv”</span>
             </button>
+            {menuFollows ? (
+              <button
+                className="menu-item"
+                onClick={() => {
+                  updateCounter(menuCounter.id, { followsId: null });
+                  setMenuFor(null);
+                }}
+              >
+                Sluta följa ”{menuFollows.label}”
+                <span className="menu-item-meta">Räknaren tickar bara på egna tryck igen</span>
+              </button>
+            ) : menuFollowCandidates.length > 0 ? (
+              <button
+                className="menu-item"
+                onClick={() => {
+                  setPickingFollow(menuCounter.id);
+                  setMenuFor(null);
+                }}
+              >
+                Följ en annan räknare …
+                <span className="menu-item-meta">
+                  Tickar med automatiskt — t.ex. Raglan följer Varv
+                </span>
+              </button>
+            ) : null}
             {counters.length < MAX_COUNTERS && (
               <button className="menu-item" onClick={addCounter}>
                 Lägg till räknare
@@ -108,6 +187,29 @@ export default function CounterPanel({ counters, onChange }) {
                 Ta bort räknaren
               </button>
             )}
+          </div>
+        </Modal>
+      )}
+
+      {pickingFollow && (
+        <Modal title="Följ räknare" onClose={() => setPickingFollow(null)}>
+          <div className="menu-list">
+            {followCandidates(counters, pickingFollow).map((candidate) => (
+              <button
+                key={candidate.id}
+                className="menu-item"
+                onClick={() => {
+                  updateCounter(pickingFollow, { followsId: candidate.id });
+                  setPickingFollow(null);
+                }}
+              >
+                {candidate.label}
+                <span className="menu-item-meta">
+                  Plus och minus på ”{candidate.label}” tickar den här också. Egna tryck sprids
+                  inte.
+                </span>
+              </button>
+            ))}
           </div>
         </Modal>
       )}
@@ -251,5 +353,24 @@ export default function CounterPanel({ counters, onChange }) {
         </Modal>
       )}
     </div>
+  );
+}
+
+/** Hänglåset: öppet när räknarna går att ändra, stängt i låst läge. */
+function LockIcon({ open }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      {open ? <path d="M8 11V7a4 4 0 0 1 7.6-1.7" /> : <path d="M8 11V7a4 4 0 0 1 8 0v4" />}
+    </svg>
   );
 }

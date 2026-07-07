@@ -953,6 +953,41 @@ input[type='range'] {
   transform: translateX(-50%);
 }
 
+/* Inpassningsläget (D6): bandet får skarpa kantlinjer så att man ser
+   exakt vilka kanter man passar mot diagramraden. */
+.band-h.band-fitting {
+  box-shadow:
+    inset 0 2px 0 rgba(214, 120, 166, 0.9),
+    inset 0 -2px 0 rgba(214, 120, 166, 0.9);
+}
+
+.band-v.band-fitting {
+  box-shadow:
+    inset 2px 0 0 rgba(214, 120, 166, 0.9),
+    inset -2px 0 0 rgba(214, 120, 166, 0.9);
+}
+
+/* −/+ i verktygsraden: stora tryckytor, siffror i tabellvidd behövs ej */
+.band-fit-step {
+  min-width: 44px;
+  font-size: 22px;
+  font-weight: 600;
+  touch-action: none;
+}
+
+.band-fit-label {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.band-fit-done {
+  font-weight: 650;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong, var(--accent));
+}
+
 /* ===== Räknare ===== */
 .counter-panel {
   display: flex;
@@ -1100,6 +1135,75 @@ input[type='range'] {
 
 .counter-milestone .counter-value {
   animation: counter-pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+/* Följare (B1): liten kedja vid namnet */
+.counter-follows-icon {
+  display: inline-block;
+  vertical-align: -1px;
+  margin-right: 3px;
+  opacity: 0.7;
+}
+
+/* Räknarlåset (B2): smal hänglåsknapp i panelens kant */
+.counter-lockbtn {
+  flex-shrink: 0;
+  width: 34px;
+  min-height: 72px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.counter-lockbtn.is-locked {
+  color: var(--project-color, var(--accent));
+  background: var(--accent-soft);
+}
+
+/* Låst räknare: dämpad siffra, inget tryck-krymp — kortet är dött */
+.counter-locked .counter-value {
+  color: var(--text-dim);
+}
+
+.counter-locked:active {
+  transform: none;
+}
+
+/* Tryck i låst läge: kortet skakar av sig trycket … */
+@keyframes counter-locked-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  60% {
+    transform: translateX(3px);
+  }
+}
+
+.counter-locked-shake {
+  animation: counter-locked-shake 0.3s ease;
+}
+
+/* … och hänglåset pockar på: "det är här du låser upp" */
+@keyframes counter-lock-nudge {
+  0%,
+  100% {
+    transform: none;
+  }
+  35% {
+    transform: scale(1.2);
+  }
+}
+
+.counter-lockbtn-nudge {
+  animation: counter-lock-nudge 0.45s ease;
 }
 
 .counter-label {

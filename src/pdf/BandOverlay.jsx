@@ -4,6 +4,10 @@ import { useRef, useState } from 'react';
  * Bandet: halvtransparent pastellrosa markering som dras med fingret.
  * Positionen lagras som andel (0–1) av sidans höjd/bredd i DOKUMENT-
  * koordinater, så att bandet sitter kvar på rätt rad vid zoom (§7.2).
+ *
+ * Tjockleken justeras i inpassningsläget (D6) via verktygsraden — inte
+ * här. I det läget (fitting) får bandet skarpare kantlinjer så att man
+ * ser exakt vilka kanter man passar mot diagramraden.
  */
 export const BAND_COLOR = '244, 194, 219';
 
@@ -14,6 +18,7 @@ export default function BandOverlay({
   opacity,
   pageCssWidth,
   pageCssHeight,
+  fitting = false, // inpassningsläget aktivt
   onDragEnd, // (position) => void
 }) {
   const [dragPos, setDragPos] = useState(null);
@@ -92,7 +97,9 @@ export default function BandOverlay({
 
   return (
     <div
-      className={`band-overlay ${horizontal ? 'band-h' : 'band-v'} ${dragPos != null ? 'band-dragging' : ''}`}
+      className={`band-overlay ${horizontal ? 'band-h' : 'band-v'} ${
+        dragPos != null ? 'band-dragging' : ''
+      } ${fitting ? 'band-fitting' : ''}`}
       style={{ ...style, background: `rgba(${BAND_COLOR}, ${opacity})` }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

@@ -36,8 +36,10 @@ export default function Stats() {
   const finishedDate = (p) => p.finishedAt || p.updatedAt || '';
   const finishedThisYear = finished.filter((p) => finishedDate(p).startsWith(String(year)));
   const ongoing = projects.filter((p) => p.status === 'pågående');
+  // F1: räknade varv ur livstidsräkningen totalTicks (B3) — en nollställning
+  // raderar inte längre ditt stickår. Fallback för poster före migreringen.
   const totalRows = projects.reduce(
-    (sum, p) => sum + (p.counters || []).reduce((s, c) => s + (c.value || 0), 0),
+    (sum, p) => sum + (p.counters || []).reduce((s, c) => s + (c.totalTicks ?? c.value ?? 0), 0),
     0
   );
   const photoCount = projects.reduce((sum, p) => sum + (p.photoBlobIds?.length || 0), 0);

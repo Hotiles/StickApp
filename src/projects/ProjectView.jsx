@@ -122,6 +122,13 @@ export default function ProjectView({ projectId }) {
     saveDebounced({ counters });
   }
 
+  function handleToggleCountersLock() {
+    // Låset ska överleva att appen dödas (B2/C2) — sparas på projektet
+    const countersLocked = !project.countersLocked;
+    setProject((p) => ({ ...p, countersLocked }));
+    saveDebounced({ countersLocked });
+  }
+
   async function handleRename(name) {
     const updated = await updateProject(projectId, { name });
     setProject(updated);
@@ -218,7 +225,12 @@ export default function ProjectView({ projectId }) {
         )}
       </div>
 
-      <CounterPanel counters={project.counters} onChange={handleCountersChange} />
+      <CounterPanel
+        counters={project.counters}
+        locked={!!project.countersLocked}
+        onChange={handleCountersChange}
+        onToggleLock={handleToggleCountersLock}
+      />
 
       {menuOpen && (
         <Modal title={project.name} onClose={() => setMenuOpen(false)}>

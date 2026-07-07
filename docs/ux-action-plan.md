@@ -87,11 +87,11 @@ passes: integrity first (B1–B3), expressiveness second (B4–B5).
 
 | # | Change | Detail | Review ref |
 |---|--------|--------|-----------|
-| B1 | **Linked counters** | A counter can follow a primary counter: "when *Varv* ticks, *Raglan* and *Knapphål* tick too." Minus on the primary rolls followers back symmetrically. One primary per project keeps the mental model simple. | §3, wish 4 |
-| B2 | **Counter lock** | One padlock toggle in the project view making all counters read-only. Prevents pocket-taps / toddler-taps. Auto-suggest state on backgrounding is *not* needed — a simple manual toggle matches how knitters already use highlight tape. | wish 5, small obs. |
-| B3 | **Accumulated history (`totalTicks`)** | Per-counter lifetime tick count that survives resets. Feeds honest "räknade varv" in stats and makes reset safe ("reset stops meaning 'erase my year'"). Invisible in the counter UI itself — this is bookkeeping, not a feature. | §5b, wish 10 |
+| B1 ✅ *(shipped July 2026)* | **Linked counters** | A counter can follow a primary counter ("Följ en annan räknare …" in the long-press menu): plus/minus on the primary ticks followers symmetrically; ticks directly on a follower never propagate. No chains, max one primary per project — enforced by the candidate list, not by rules the user has to learn. Follower marked with a small chain glyph. Reset never propagates. Pure logic in `counters/tick.js` with unit tests. | §3, wish 4 |
+| B2 ✅ *(shipped July 2026)* | **Counter lock** | Padlock button at the edge of the counter panel making all counters read-only (minus hidden, taps shake the card and pulse the padlock, long-press menus off — the padlock is the single way out). Persisted per project (`countersLocked`) so it survives backgrounding/restart, like highlight tape stays on. | wish 5, small obs. |
+| B3 ✅ *(shipped July 2026)* | **Accumulated history (`totalTicks`)** | Per-counter lifetime tick count that survives resets. Plus increments, minus decrements (a miscount was never a knitted row), reset doesn't touch it. Invisible in the counter UI; feeds "räknade varv" in stats. Backfilled `totalTicks = value` in db v4 + on old-backup restore. | §5b, wish 10 |
 | B4 | **Shaping sequences** | Replace single `repeatEvery` with an ordered sequence of steps: `[{every: 4, times: 3}, {every: 6, times: 4}]`. UI reads back what the pattern says: "öka vart 4:e varv 3 ggr, sedan vart 6:e varv 4 ggr". Displays "nästa: minskning på varv 31 · steg 2 av 7". Single-rhythm remains the simple default; "lägg till steg" reveals the sequence editor. | §4, wish 6 |
-| B5 | **Total and repeat shown together** | When a counter has both target and repeat, keep the total ("47/120") as the big number and the repeat position as the sub-line — the total is what you compare against the pattern. Pure display-hierarchy fix in `Counter.jsx`. | small obs., wish 9 |
+| B5 ✅ *(shipped July 2026)* | **Total and repeat shown together** | With both target and repeat set, the total ("47 /120") is the big number and the repeat position the sub-line ("Varv 5 av 6 · Dags! ✨"). Repeat-only counters keep the repeat position as the main number — a pure pattern-repeat counter is *about* the position. | small obs., wish 9 |
 
 **Design notes**
 - B1 setup lives in the existing long-press menu ("Följ Varv-räknaren"), so
@@ -202,7 +202,7 @@ after. Never ship the wrap-up card while the stats still lie.
 
 | # | Change | Detail | Review ref |
 |---|--------|--------|-----------|
-| F1 | **Honest statistics** | "Ditt stickår" and "Färdigt per år" keyed on `finishedAt` (A2), never `updatedAt`. "Räknade varv" from `totalTicks` (B3), never current values. Projects with estimated backfilled dates marked subtly. | §5, wish 3+10 |
+| F1 ✅ *(shipped July 2026)* | **Honest statistics** | "Ditt stickår" and "Färdigt per år" keyed on `finishedAt` (A2), never `updatedAt`. "Räknade varv" from `totalTicks` (B3), never current values. Projects with estimated backfilled dates marked subtly. | §5, wish 3+10 |
 | F2 | **Deadline math** | Deadline badge + row target → "≈ 9 varv per dag till jul." Only shown when both exist; tone stays whisper, not nag. | wish 17 |
 | F3 | **Time-on-project** | Rough automatic tracking of time with the project open (resume machinery already knows the sessions). Shown on the finished card: "127 timmar." No timers, no start/stop UI. | wish 16 |
 | F4 | **Yearly wrap-up share card** | "Ditt stickår 2026" image via the existing share-card machinery: projects finished, rows counted, meters of yarn (if E1 data exists). The app's best word-of-mouth feature, gated on F1. | wish 19 |
@@ -234,11 +234,10 @@ release passes a recognizable user test.
 - C1 Wake lock ✅
 - A1 Projektinfo from cast-on ✅
 - A2 Started/finished dates (+ F1 stats fix — done in the same change) ✅
-  *(F1's "räknade varv" half still waits on B3.)*
-- B1 Linked counters
-- B2 Counter lock
-- B3 `totalTicks` (invisible, but land it now so history starts accruing)
-- B5 Total/repeat display fix (trivial, ride along)
+- B1 Linked counters ✅
+- B2 Counter lock ✅
+- B3 `totalTicks` ✅ *(landed with B1/B2 — "räknade varv" now reads it, completing F1)*
+- B5 Total/repeat display fix ✅
 - D6 Band thickness per project (small, self-contained, and a
   several-times-a-week annoyance for anyone with more than one active
   project — squarely in the sofa-test spirit)

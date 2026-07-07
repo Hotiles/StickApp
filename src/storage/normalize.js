@@ -25,3 +25,31 @@ export function normalizeProjectDates(project) {
   if (p.datesEstimated === undefined) p.datesEstimated = false;
   return p;
 }
+
+/**
+ * Räknare fick totalTicks i v4 (UX-plan B3) och projekt fick räknarlåset
+ * countersLocked (B2). Äldre poster backfyllas: totalTicks = nuvarande
+ * värde (bästa tillgängliga uppskattning — historik före migreringen är
+ * borta) och låset av.
+ */
+export function normalizeProjectCounters(project) {
+  if (!project) return project;
+  const counters = project.counters || [];
+  const needsTicks = counters.some((c) => c.totalTicks === undefined);
+  const needsLock = project.countersLocked === undefined;
+  if (!needsTicks && !needsLock) return project;
+
+  const p = { ...project };
+  if (needsTicks) {
+    p.counters = counters.map((c) =>
+      c.totalTicks === undefined ? { ...c, totalTicks: c.value || 0 } : c
+    );
+  }
+  if (needsLock) p.countersLocked = false;
+  return p;
+}
+
+/** Alla projektnormaliseringar i ett svep — för db-migrationen och backup-inläsning. */
+export function normalizeProject(project) {
+  return normalizeProjectCounters(normalizeProjectDates(project));
+}

@@ -1,5 +1,5 @@
 import { getDb, STORES } from './db.js';
-import { normalizeProjectDates } from './normalize.js';
+import { normalizeProject } from './normalize.js';
 
 /*
  * API-lager för all datalagring (§5 i specen): komponenter pratar bara med
@@ -146,9 +146,9 @@ export async function deletePattern(id) {
 // ---------- Projekt ----------
 
 export const DEFAULT_COUNTERS = () => [
-  { id: uuid(), label: 'Varv', value: 0 },
-  { id: uuid(), label: 'Räknare 2', value: 0 },
-  { id: uuid(), label: 'Räknare 3', value: 0 },
+  { id: uuid(), label: 'Varv', value: 0, totalTicks: 0 },
+  { id: uuid(), label: 'Räknare 2', value: 0, totalTicks: 0 },
+  { id: uuid(), label: 'Räknare 3', value: 0, totalTicks: 0 },
 ];
 
 export const DEFAULT_VIEW_STATE = () => ({
@@ -178,6 +178,7 @@ export async function createProject({ name, patternId = null, color = null }) {
     color, // id i garnpaletten (yarnColors.js); null = appens accentfärg
     viewState: DEFAULT_VIEW_STATE(),
     counters: DEFAULT_COUNTERS(),
+    countersLocked: false,
     yarn: '',
     yarnAmount: '',
     needleSize: '',
@@ -307,8 +308,8 @@ const DATA_STORES = [STORES.folders, STORES.patterns, STORES.projects, STORES.pe
 function writeDump(tx, { folders, patterns, projects, persons = [], yarns = [], blobRecords }) {
   for (const f of folders) tx.objectStore(STORES.folders).put(f);
   for (const p of patterns) tx.objectStore(STORES.patterns).put(p);
-  // Projekt från äldre backuper saknar startedAt/finishedAt — backfyll vid inläsning
-  for (const p of projects) tx.objectStore(STORES.projects).put(normalizeProjectDates(p));
+  // Projekt från äldre backuper saknar datum/totalTicks/lås — backfyll vid inläsning
+  for (const p of projects) tx.objectStore(STORES.projects).put(normalizeProject(p));
   for (const p of persons) tx.objectStore(STORES.persons).put(p);
   for (const y of yarns) tx.objectStore(STORES.yarns).put(y);
   for (const b of blobRecords) tx.objectStore(STORES.blobs).put(b);

@@ -1,12 +1,12 @@
 import { openDB } from 'idb';
-import { normalizeProjectDates } from './normalize.js';
+import { normalizeProject } from './normalize.js';
 
 /*
  * IndexedDB-uppsättning. All åtkomst utifrån ska gå via storage.js —
  * inga direkta anrop hit från komponenter.
  */
 export const DB_NAME = 'stickan';
-export const DB_VERSION = 3;
+export const DB_VERSION = 4;
 
 export const STORES = {
   folders: 'folders',
@@ -48,12 +48,13 @@ export function getDb() {
         if (!db.objectStoreNames.contains(STORES.yarns)) {
           db.createObjectStore(STORES.yarns, { keyPath: 'id' });
         }
-        // v3: startedAt/finishedAt på projekt — backfyll befintliga poster
-        if (oldVersion >= 1 && oldVersion < 3) {
+        // v3: startedAt/finishedAt, v4: totalTicks + räknarlås —
+        // backfyll befintliga poster (normalizeProject är idempotent)
+        if (oldVersion >= 1 && oldVersion < DB_VERSION) {
           const store = tx.objectStore(STORES.projects);
           const projects = await store.getAll();
           for (const p of projects) {
-            const normalized = normalizeProjectDates(p);
+            const normalized = normalizeProject(p);
             if (normalized !== p) await store.put(normalized);
           }
         }

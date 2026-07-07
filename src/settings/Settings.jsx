@@ -152,8 +152,8 @@ export default function Settings() {
           />
           <p className="settings-hint">
             Tjockleken här är standard för nya projekt. I ett projekt passar du in bandet mot
-            mönstrets rader genom att dra i greppet på bandets kant — det minns projektet sedan
-            själv.
+            mönstrets rader med knappen ”Passa in bandet” i mönstervyn — det minns projektet
+            sedan själv.
           </p>
         </section>
 

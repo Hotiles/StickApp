@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BandOverlay from './BandOverlay.jsx';
+import { stepBandFit, BAND_STEP_PT } from './bandFit.js';
 
 /*
  * Mönstervisaren: pdf.js-canvas med pinch-zoom, panorering, sidbläddring
@@ -15,10 +16,6 @@ const MAX_CANVAS_PIXELS = 12_000_000; // säkerhetsmarginal för iOS-canvasgrän
 const MAX_CANVAS_DIM = 4096;
 const SWIPE_MIN_DX = 64;
 const DEFAULT_BAND_POSITION = 0.25;
-// Tjockleksgreppet får friare spelrum än reglaget i Inställningar (10–60):
-// diagramrader kan vara både pyttesmå och jättelika.
-const MIN_BAND_PT = 6;
-const MAX_BAND_PT = 120;
 
 export default function PdfViewer({
   doc,
@@ -55,6 +52,8 @@ export default function PdfViewer({
     initialViewState?.bandThickness ?? bandThickness
   );
   const bandThicknessOverrideRef = useRef(initialViewState?.bandThickness != null);
+  // Inpassningsläget (D6): verktygsraden byts mot −/+ som stegar tjockleken.
+  const [fittingBand, setFittingBand] = useState(false);
   const [renderError, setRenderError] = useState(null);
 
   const pointersRef = useRef(new Map());
@@ -210,6 +209,9 @@ export default function PdfViewer({
       const clamped = clampPage(next, doc);
       if (clamped === pageNumRef.current) return;
       setPageNum(clamped);
+      // Sidbyte lämnar inpassningsläget — man ska aldrig komma tillbaka
+      // till ett beväpnat läge man glömt (stickning avbryts jämt).
+      setFittingBand(false);
       const resetScroll = clampOffsets(zoomRef.current, 0, 0);
       setScroll(resetScroll);
       reportState({ page: clamped, scrollX: resetScroll.x, scrollY: resetScroll.y });
@@ -394,19 +396,27 @@ export default function PdfViewer({
     });
   }
 
-  // D6: kanten dras tills bandet täcker en diagramrad — spara tjockleken
-  // (i punkter, dokumentkoordinater) som projektets override från och med nu.
-  function handleBandResizeEnd(position, thicknessCss) {
-    const pt =
-      Math.round(clamp(thicknessCss / cssPerPtRef.current, MIN_BAND_PT, MAX_BAND_PT) * 10) / 10;
+  // D6: −/+ i inpassningsläget stegar tjockleken kantförankrat (bandFit.js)
+  // och sparar den (i punkter, dokumentkoordinater) som projektets override.
+  function stepBandThickness(deltaPt) {
+    if (!pageInfo) return;
+    const horizontal = bandRef.current.orientation === 'horisontell';
+    const next = stepBandFit({
+      position: bandRef.current.positionByPage[pageNumRef.current] ?? DEFAULT_BAND_POSITION,
+      thicknessPt: bandThicknessPtRef.current,
+      deltaPt,
+      spanPt: horizontal ? pageInfo.heightPt : pageInfo.widthPt,
+    });
+    if (!next) return;
+    if (navigator.vibrate) navigator.vibrate(8);
     bandThicknessOverrideRef.current = true;
-    setBandThicknessPt(pt);
-    const next = {
+    setBandThicknessPt(next.thicknessPt);
+    const nextBand = {
       ...bandRef.current,
-      positionByPage: { ...bandRef.current.positionByPage, [pageNumRef.current]: position },
+      positionByPage: { ...bandRef.current.positionByPage, [pageNumRef.current]: next.position },
     };
-    setBand(next);
-    reportState({ band: next, bandThickness: pt });
+    setBand(nextBand);
+    reportState({ band: nextBand, bandThickness: next.thicknessPt });
   }
 
   // ---------- Render ----------
@@ -414,8 +424,6 @@ export default function PdfViewer({
   const pageCssW = baseCss ? baseCss.w * zoom : 0;
   const pageCssH = baseCss ? baseCss.h * zoom : 0;
   const cssPerPt = pageInfo && pageCssW ? pageCssW / pageInfo.widthPt : 1;
-  const cssPerPtRef = useRef(cssPerPt);
-  cssPerPtRef.current = cssPerPt;
 
   return (
     <div className="pdf-container">
@@ -446,14 +454,11 @@ export default function PdfViewer({
                 orientation={band.orientation}
                 position={bandPosition}
                 thicknessCss={bandThicknessPt * cssPerPt}
-                thicknessPt={bandThicknessPt}
-                minThicknessCss={MIN_BAND_PT * cssPerPt}
-                maxThicknessCss={MAX_BAND_PT * cssPerPt}
                 opacity={bandOpacity}
                 pageCssWidth={pageCssW}
                 pageCssHeight={pageCssH}
+                fitting={fittingBand}
                 onDragEnd={handleBandDragEnd}
-                onResizeEnd={handleBandResizeEnd}
               />
             )}
           </div>
@@ -465,49 +470,83 @@ export default function PdfViewer({
       </div>
 
       <div className="pdf-toolbar">
-        <button
-          className="btn-icon"
-          onClick={() => goToPage(pageNum - 1)}
-          disabled={pageNum <= 1}
-          aria-label="Föregående sida"
-        >
-          ‹
-        </button>
-        <span className="pdf-pageinfo">
-          {pageNum} / {numPages || '–'}
-        </span>
-        <button
-          className="btn-icon"
-          onClick={() => goToPage(pageNum + 1)}
-          disabled={pageNum >= numPages}
-          aria-label="Nästa sida"
-        >
-          ›
-        </button>
-        {showBandControls && (
+        {fittingBand ? (
           <>
-            <span className="pdf-toolbar-spacer" />
-            <button
-              className={`btn-icon ${band.visible ? 'btn-icon-active' : ''}`}
-              onClick={() => updateBand({ visible: !band.visible })}
-              aria-label={band.visible ? 'Dölj bandet' : 'Visa bandet'}
-              title={band.visible ? 'Dölj bandet' : 'Visa bandet'}
+            <HoldStepButton
+              ariaLabel="Minska bandets tjocklek"
+              onStep={(steps) => stepBandThickness(-BAND_STEP_PT * steps)}
             >
-              <BandIcon />
+              −
+            </HoldStepButton>
+            <span className="band-fit-label">Bandets tjocklek</span>
+            <HoldStepButton
+              ariaLabel="Öka bandets tjocklek"
+              onStep={(steps) => stepBandThickness(BAND_STEP_PT * steps)}
+            >
+              +
+            </HoldStepButton>
+            <span className="pdf-toolbar-spacer" />
+            <button className="band-fit-done" onClick={() => setFittingBand(false)}>
+              Klar
             </button>
-            {band.visible && (
-              <button
-                className="btn-icon"
-                onClick={() =>
-                  updateBand({
-                    orientation: band.orientation === 'horisontell' ? 'vertikal' : 'horisontell',
-                  })
-                }
-                aria-label="Växla bandets riktning"
-                title="Växla bandets riktning"
-              >
-                {band.orientation === 'horisontell' ? '↕' : '↔'}
-              </button>
+          </>
+        ) : (
+          <>
+            <button
+              className="btn-icon"
+              onClick={() => goToPage(pageNum - 1)}
+              disabled={pageNum <= 1}
+              aria-label="Föregående sida"
+            >
+              ‹
+            </button>
+            <span className="pdf-pageinfo">
+              {pageNum} / {numPages || '–'}
+            </span>
+            <button
+              className="btn-icon"
+              onClick={() => goToPage(pageNum + 1)}
+              disabled={pageNum >= numPages}
+              aria-label="Nästa sida"
+            >
+              ›
+            </button>
+            {showBandControls && (
+              <>
+                <span className="pdf-toolbar-spacer" />
+                <button
+                  className={`btn-icon ${band.visible ? 'btn-icon-active' : ''}`}
+                  onClick={() => updateBand({ visible: !band.visible })}
+                  aria-label={band.visible ? 'Dölj bandet' : 'Visa bandet'}
+                  title={band.visible ? 'Dölj bandet' : 'Visa bandet'}
+                >
+                  <BandIcon />
+                </button>
+                {band.visible && (
+                  <>
+                    <button
+                      className="btn-icon"
+                      onClick={() =>
+                        updateBand({
+                          orientation: band.orientation === 'horisontell' ? 'vertikal' : 'horisontell',
+                        })
+                      }
+                      aria-label="Växla bandets riktning"
+                      title="Växla bandets riktning"
+                    >
+                      {band.orientation === 'horisontell' ? '↕' : '↔'}
+                    </button>
+                    <button
+                      className="btn-icon"
+                      onClick={() => setFittingBand(true)}
+                      aria-label="Passa in bandet"
+                      title="Passa in bandets tjocklek mot en diagramrad"
+                    >
+                      <BandFitIcon />
+                    </button>
+                  </>
+                )}
+              </>
             )}
           </>
         )}
@@ -521,6 +560,75 @@ function BandIcon() {
     <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
       <rect x="2" y="8" width="16" height="5" rx="2" fill="rgba(244,194,219,0.9)" stroke="currentColor" strokeWidth="1" />
     </svg>
+  );
+}
+
+/** Band med pilar utåt: passa in tjockleken mot en diagramrad. */
+function BandFitIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="2" y="7.5" width="16" height="5" rx="2" fill="rgba(244,194,219,0.9)" stroke="currentColor" strokeWidth="1" />
+      <path d="M10 5V1.5M8.4 3.1 10 1.5l1.6 1.6M10 15v3.5M8.4 16.9 10 18.5l1.6-1.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/*
+ * Stegknapp med håll-för-repetition: ett steg direkt vid tryck, sedan
+ * repetition efter en kort fördröjning, och större kliv efter ~1,5 s så
+ * att långa resor (24 → 90 pt) inte kräver trettio tryck. Tangentbord
+ * ger alltid ett steg i taget (klick med detail 0).
+ */
+function HoldStepButton({ ariaLabel, onStep, children }) {
+  const holdRef = useRef(null);
+  const stepRef = useRef(onStep);
+  stepRef.current = onStep;
+
+  function stop() {
+    const hold = holdRef.current;
+    if (!hold) return;
+    clearTimeout(hold.timeout);
+    clearInterval(hold.interval);
+    holdRef.current = null;
+  }
+
+  useEffect(() => stop, []);
+
+  function start(e) {
+    if (e.button != null && e.button !== 0) return;
+    e.preventDefault();
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* pekaren kan redan vara borta */
+    }
+    stop();
+    stepRef.current(1);
+    const hold = { count: 0, interval: null };
+    hold.timeout = setTimeout(() => {
+      hold.interval = setInterval(() => {
+        hold.count += 1;
+        stepRef.current(hold.count > 12 ? 3 : 1);
+      }, 110);
+    }, 400);
+    holdRef.current = hold;
+  }
+
+  return (
+    <button
+      className="btn-icon band-fit-step"
+      onPointerDown={start}
+      onPointerUp={stop}
+      onPointerCancel={stop}
+      onClick={(e) => {
+        // detail 0 = tangentbordsklick (Enter/mellanslag) — pekare hanteras ovan
+        if (e.detail === 0) stepRef.current(1);
+      }}
+      onContextMenu={(e) => e.preventDefault()}
+      aria-label={ariaLabel}
+    >
+      {children}
+    </button>
   );
 }
 

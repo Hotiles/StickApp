@@ -147,8 +147,18 @@ sketched:
 - Net effect: the row is ~16 pt slimmer for default counters (92 → 76 pt),
   ~10 pt slimmer when target/repeat sub-lines are showing.
 
-Explicitly **not** trimmed: the 28 pt value digits (glanceability), the
-lock rail width, the progress line.
+**Round two** *(user feedback after the first trim: still a bit large —
+"the counters should be easily reachable, but the pattern is what
+counts")*: type scaled down one notch (value digits 28 → 24 pt, label
+12 → 11, sub 11 → 10, "/target" 13 → 12), panel padding 8 → 6 pt, card
+min-height 60 → 52 pt, landscape column 148 → 136 pt. Cumulative vs. the
+original: the portrait row is ~28 pt slimmer for default counters
+(92 → 64 pt, −30 %). The 52 pt floor is the stopping point — going below
+touches the 44 pt blind-tap margin, so any further space requests should
+be answered with the §5 reading strip, not more shrinking.
+
+Explicitly **not** trimmed: the lock rail width, the progress line, the
+28×28 minus button (touch target).
 
 ## 5. Optional follow-up (Tier 2, only if feedback persists): reading strip
 

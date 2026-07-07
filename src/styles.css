@@ -992,7 +992,7 @@ input[type='range'] {
 .counter-panel {
   display: flex;
   gap: 6px;
-  padding: 8px 8px calc(8px + var(--safe-bottom));
+  padding: 6px 6px calc(6px + var(--safe-bottom));
   background: var(--bg);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
@@ -1001,7 +1001,7 @@ input[type='range'] {
 .counter {
   flex: 1;
   position: relative;
-  min-height: 60px;
+  min-height: 52px;
   min-width: 0;
   background: var(--surface);
   border-radius: var(--radius);
@@ -1026,7 +1026,7 @@ input[type='range'] {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 5px 4px;
+  padding: 4px;
   border-radius: inherit;
   user-select: none;
   -webkit-user-select: none;
@@ -1093,7 +1093,7 @@ input[type='range'] {
 }
 
 .counter-of {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-dim);
 }
@@ -1117,7 +1117,7 @@ input[type='range'] {
 }
 
 .counter-sub {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-dim);
   line-height: 1.2;
 }
@@ -1201,7 +1201,7 @@ input[type='range'] {
 .counter-lockbtn {
   flex-shrink: 0;
   width: 34px;
-  min-height: 60px;
+  min-height: 52px;
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);
@@ -1259,7 +1259,7 @@ input[type='range'] {
 }
 
 .counter-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 650;
   color: var(--text-dim);
   max-width: 100%;
@@ -1269,7 +1269,7 @@ input[type='range'] {
 }
 
 .counter-value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -1305,15 +1305,15 @@ input[type='range'] {
   .project-view > .counter-panel {
     grid-area: counters;
     flex-direction: column;
-    width: calc(148px + env(safe-area-inset-right, 0px));
-    padding: 8px calc(8px + env(safe-area-inset-right, 0px)) calc(8px + var(--safe-bottom)) 8px;
+    width: calc(136px + env(safe-area-inset-right, 0px));
+    padding: 6px calc(6px + env(safe-area-inset-right, 0px)) calc(6px + var(--safe-bottom)) 6px;
     border-top: none;
     border-left: 1px solid var(--border);
     overflow-y: auto;
   }
 
   .project-view .counter {
-    min-height: 56px;
+    min-height: 52px;
   }
 
   .project-view .counter-lockbtn {

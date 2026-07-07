@@ -1,7 +1,8 @@
 # Stickan — UX action plan (response to the knitter's review)
 
-*Drafted July 2026, based on `docs/review-knitter.md`. This plan translates the
-review into grouped improvement workstreams, each anchored in the underlying
+*Drafted July 2026, based on `docs/review-knitter.md` plus subsequent direct
+user feedback (marked "user feedback" in the tables). This plan translates the
+feedback into grouped improvement workstreams, each anchored in the underlying
 user need rather than the individual feature request.*
 
 ---
@@ -142,11 +143,24 @@ backups all touched), so it deserves its own design spike before commitment.
 | D3 | **Tap-to-highlight size marker** | Lightweight annotation: tap to drop a small circle/highlight in document coordinates, for marking your size in "56 (60, 64, 68) sts" through a whole pattern. Explicitly *not* free-form drawing — dots and short highlights only, erasable by tapping again. Stored like band positions. | §8, wish 8 |
 | D4 | **Image patterns** | The promised v1.1: import one or more photos as a multi-page "pattern" with the same band, zoom and resume behavior. Reuse the PDF viewer's page abstraction with an image page source. | wish 15 |
 | D5 | **Library search + tags** | Name search across folders (instant filter on the existing list), plus a small fixed tag vocabulary (garment type, yarn weight). Folders stay; search complements them. | §7, wish 14 |
+| D6 | **Band thickness per project, adjusted in place** | Chart row heights differ per pattern, so a global thickness is scoped wrong: the band covers too much on one pattern, too little on the next, and retuning it in Inställningar for every project switch is a loop of indirection. Store a thickness override in the project's `viewState` (per file once D1 lands); the Inställningar value remains the *default for new projects*. Crucially, make the adjustment **direct manipulation in the pattern view** — drag the band's edge (or a small resize handle shown while the band is held) until it matches one chart row — instead of a slider two screens away. Set once per project, remembered forever, exactly like band position already is. | user feedback |
+| D7 | **Page gallery for direct navigation** | Real patterns send you from page 2 to the chart on page 6 and back; step-by-step paging makes that a chore. Tap the page indicator to open a thumbnail grid of all pages and jump directly. Reuse the existing thumbnail renderer (`src/pdf/thumbnail.js`) with lazy, cached page thumbs. Mark the band's page in the grid ("här är du") so the trip *back* to your row is one obvious tap. | user feedback |
 
 **Design notes**
-- Sequence *within* the workstream: D1 first (it changes the project↔pattern
-  relationship everything else builds on), then D2/D3 (shared annotation
-  storage design — design them together even if shipped apart), then D4, D5.
+- Sequence *within* the workstream: D6 first (small, self-contained, daily
+  pain), then D1 (it changes the project↔pattern relationship everything
+  else builds on), then D7 and D2/D3 (shared annotation/navigation surface —
+  design them together even if shipped apart), then D4, D5.
+- D6 follows the pattern the reviewer singled out as the app's proof of
+  craft: state that belongs to *this pattern* lives with the project, not in
+  global settings. Band position already works that way; thickness should
+  too. Same future rule for any per-document tunable (opacity could get the
+  same override later if asked for — don't build it speculatively).
+- D7 doubles as the temporary-detour fix: "check page 6, come back to my
+  row." Highlighting the band's page in the grid makes the return trip
+  self-evident without inventing a separate "back to my row" button. If the
+  grid alone proves insufficient, a back-affordance can be added later —
+  start with the simpler thing.
 - D3 is the scope-creep trap of this plan. Hold the line at "circle a number":
   no ink, no text, no shapes. If users need more, that's a v3 conversation.
 - Backup format must version-bump for D1/D4; test restore-from-old-backup
@@ -224,6 +238,9 @@ release passes a recognizable user test.
 - B2 Counter lock
 - B3 `totalTicks` (invisible, but land it now so history starts accruing)
 - B5 Total/repeat display fix (trivial, ride along)
+- D6 Band thickness per project (small, self-contained, and a
+  several-times-a-week annoyance for anyone with more than one active
+  project — squarely in the sofa-test spirit)
 
 Small, sharply-scoped items; roughly the "weekend of work" the review
 estimates, plus migrations. Ship it as one visible release — it directly
@@ -232,6 +249,8 @@ answers the review's headline criticism.
 ### Release 2 — "Real patterns" *(Tier 2)*
 - B4 Shaping sequences
 - D1 Multiple files per project
+- D7 Page gallery (shares the document-navigation surface with D1's file
+  switcher — design them as one navigation model)
 - D2 Second band + D3 size marker
 - Workstream 0: streamed backups (before libraries grow)
 

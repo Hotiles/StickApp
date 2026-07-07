@@ -18,6 +18,7 @@ import Modal from '../ui/Modal.jsx';
 import FinishForm from './FinishForm.jsx';
 import PatternThumb from '../patterns/PatternThumb.jsx';
 import { YarnColorPicker, yarnColorValue } from '../ui/yarnColors.jsx';
+import { useWakeLock } from '../ui/useWakeLock.js';
 
 /*
  * Projektvyn (§4.3): mönsterläge + räknarpanel. Allt state (sida, zoom,
@@ -39,6 +40,9 @@ export default function ProjectView({ projectId }) {
   const [settings, setSettings] = useState(null);
 
   const { doc, loading: pdfLoading, error: pdfError } = usePdfDocument(pdfBlob);
+
+  // Soffläget: skärmen ska inte slockna medan man stickar med projektet öppet
+  useWakeLock(settings?.keepAwake ?? false);
 
   useEffect(() => {
     let cancelled = false;

@@ -117,7 +117,7 @@ Small workstream, huge daily impact — the reviewer put it at wish #1.
 
 | # | Change | Detail | Review ref |
 |---|--------|--------|-----------|
-| C1 | **Wake lock in the project view** | `navigator.wakeLock` acquired when a project (pattern open) is active, released on navigation away/backgrounding, re-acquired on visibilitychange. Toggle in Inställningar (default **on**) for battery-anxious users. Graceful no-op where unsupported. | §2, wish 1 |
+| C1 ✅ *(shipped July 2026)* | **Wake lock in the project view** | `navigator.wakeLock` acquired when a project (pattern open) is active, released on navigation away/backgrounding, re-acquired on visibilitychange. Toggle in Inställningar (default **on**) for battery-anxious users. Graceful no-op where unsupported. | §2, wish 1 |
 | C2 | **Session-hardening pass** | While in there: verify resume flush on `visibilitychange` also runs before wake-lock release, and confirm the counter-lock state (B2) persists across resume. Bundle as one "the phone behaves on the sofa" QA pass. | — |
 
 **Design notes**

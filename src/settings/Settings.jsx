@@ -153,6 +153,22 @@ export default function Settings() {
         </section>
 
         <section>
+          <h2 className="section-title">Skärmen</h2>
+          <label className="field field-toggle">
+            <input
+              type="checkbox"
+              checked={settings.keepAwake}
+              onChange={(e) => set({ keepAwake: e.target.checked })}
+            />
+            <span>Håll skärmen vaken i projektvyn</span>
+          </label>
+          <p className="settings-hint">
+            Skärmen slocknar inte medan ett projekt är öppet — praktiskt när man stickar efter
+            diagram. Drar lite mer batteri.
+          </p>
+        </section>
+
+        <section>
           <h2 className="section-title">Lagring</h2>
           {estimate ? (
             <p className="settings-hint">

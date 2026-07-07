@@ -261,6 +261,7 @@ const SETTINGS_DEFAULTS = {
   lastOpenedProjectId: null,
   bandOpacity: 0.4,
   bandThickness: 24, // i PDF-punkter (dokumentkoordinater)
+  keepAwake: true, // håll skärmen vaken i projektvyn
 };
 
 export async function getSettings() {

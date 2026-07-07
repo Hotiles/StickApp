@@ -512,6 +512,20 @@ input[type='range'] {
   accent-color: var(--accent-strong);
 }
 
+.field-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.field-toggle input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent-strong);
+  flex-shrink: 0;
+}
+
 /* ===== Verktyg ===== */
 .tool-card {
   background: var(--surface);

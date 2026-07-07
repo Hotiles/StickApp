@@ -138,19 +138,19 @@ backups all touched), so it deserves its own design spike before commitment.
 
 | # | Change | Detail | Review ref |
 |---|--------|--------|-----------|
-| D1 | **Multiple pattern files per project** | Project holds an ordered list of pattern references instead of one `patternId`. Quick switcher (segmented control or tab strip: "Beskrivning · Diagram · Måttskiss") in the pattern view. Each file keeps its own `viewState` (page, zoom, scroll, band). Migration: existing `patternId` → list of one. | §7, wish 7 |
+| D1 ❌ *(dropped July 2026 after user research)* | **Multiple pattern files per project** | Asked, users didn't want it: the patterns they actually use are almost exclusively a single file with instructions and chart together, and more than one file per project is rare. The settled design is archived in `docs/design-d1-d7.md` should reality change. | §7, wish 7 |
 | D2 | **A second band** | Two independently colored/positioned bands per file (chart row + written-instruction line). Reuses the existing document-coordinate machinery wholesale. Second band is opt-in ("Lägg till band" in band settings) so the default stays one-band simple. | §8, wish 8 |
 | D3 | **Tap-to-highlight size marker** | Lightweight annotation: tap to drop a small circle/highlight in document coordinates, for marking your size in "56 (60, 64, 68) sts" through a whole pattern. Explicitly *not* free-form drawing — dots and short highlights only, erasable by tapping again. Stored like band positions. | §8, wish 8 |
 | D4 | **Image patterns** | The promised v1.1: import one or more photos as a multi-page "pattern" with the same band, zoom and resume behavior. Reuse the PDF viewer's page abstraction with an image page source. | wish 15 |
 | D5 | **Library search + tags** | Name search across folders (instant filter on the existing list), plus a small fixed tag vocabulary (garment type, yarn weight). Folders stay; search complements them. | §7, wish 14 |
 | D6 ✅ *(shipped July 2026)* | **Band thickness per project, adjusted in place** | "Passa in bandet" mode from the band controls in the toolbar: −/+ step the thickness 2 pt per tap (hold to repeat, accelerating), **edge-anchored** — the top/left edge stays put, so you align it on the row by moving the band, then tap until the other edge matches. Mode exits via Klar or any page change; band gets crisp edge lines while active. Saved as `viewState.bandThickness` (pt) only once the user actually adjusts, so Inställningar remains the default for new projects. *(v1 shipped a drag-grip on the band's edge; replaced after UX review — finger occlusion and fat-finger precision made drag the wrong input for edge-matching on a phone, and a permanent second handle invited accidental resizes.)* | user feedback |
-| D7 | **Page gallery for direct navigation** | Real patterns send you from page 2 to the chart on page 6 and back; step-by-step paging makes that a chore. Tap the page indicator to open a thumbnail grid of all pages and jump directly. Reuse the existing thumbnail renderer (`src/pdf/thumbnail.js`) with lazy, cached page thumbs. Mark the band's page in the grid ("här är du") so the trip *back* to your row is one obvious tap. | user feedback |
+| D7 ✅ *(shipped July 2026)* | **Page gallery for direct navigation** | Tap the page indicator (now a pill button) to open a thumbnail grid of all pages and jump directly. Thumbs render lazily (IntersectionObserver) via a generalized `thumbnail.js`, cached in memory only — nothing persisted. Two "här är du" markers: the current page is outlined, and the page where the band was last moved/fitted gets a band badge (`band.lastMovedPage`, set on drag-end and band-fit) — so the trip *back* to your row after a detour is one obvious tap. No schema migration needed (`lastMovedPage` lives inside `viewState.band`; `normalizeBand` backfills null). The gallery lives inside `PdfViewer` — the right home now that D1 is dropped and one project means one document. | user feedback |
 
 **Design notes**
-- Sequence *within* the workstream: D6 first (small, self-contained, daily
-  pain), then D1 (it changes the project↔pattern relationship everything
-  else builds on), then D7 and D2/D3 (shared annotation/navigation surface —
-  design them together even if shipped apart), then D4, D5.
+- Sequence *within* the workstream (as planned; D1 was later dropped —
+  see its row): D6 first (small, self-contained, daily pain), then D1,
+  then D7 and D2/D3 (shared annotation/navigation surface — design them
+  together even if shipped apart), then D4, D5.
 - D6 follows the pattern the reviewer singled out as the app's proof of
   craft: state that belongs to *this pattern* lives with the project, not in
   global settings. Band position already works that way; thickness should
@@ -163,7 +163,7 @@ backups all touched), so it deserves its own design spike before commitment.
   start with the simpler thing.
 - D3 is the scope-creep trap of this plan. Hold the line at "circle a number":
   no ink, no text, no shapes. If users need more, that's a v3 conversation.
-- Backup format must version-bump for D1/D4; test restore-from-old-backup
+- Backup format must version-bump for D4; test restore-from-old-backup
   explicitly (the merge tests in `storage/merge.test.js` are the model).
 
 ---
@@ -216,7 +216,7 @@ Not a UX group, but the review flags it and it guards everything else:
 - **Backup memory limits on iOS** — the review: "fix that one before
   someone's pattern collection depends on it." Stream the zip instead of
   building it in memory. This protects the only safety net and rises in
-  urgency as D1/D4 grow libraries.
+  urgency as D4 grows libraries.
 - **Migrations + merge tests** for every schema change above (statuses,
   dates, sequences, multi-file). Each workstream lands with its migration and
   a `merge.js` test, so the deferred cloud sync stays viable.
@@ -249,9 +249,12 @@ reviewer and ask for the re-review against her own Tier 1 list (§5).
 
 ### Release 2 — "Real patterns" *(Tier 2)*
 - B4 Shaping sequences ✅
-- D1 Multiple files per project
-- D7 Page gallery (shares the document-navigation surface with D1's file
-  switcher — design them as one navigation model)
+- D1 Multiple files per project ❌ *(dropped after user research — users'
+  patterns are almost exclusively single-file; design archived in
+  `docs/design-d1-d7.md`)*
+- D7 Page gallery ✅ *(designed with D1 as one navigation model, shipped
+  standalone against the single-file model — which turned out to be the
+  only model users need)*
 - D2 Second band + D3 size marker
 - Workstream 0: streamed backups (before libraries grow)
 
@@ -266,9 +269,11 @@ reviewer and ask for the re-review against her own Tier 1 list (§5).
 - A4 Recipient link
 
 *(A3 and D4 are deliberately later than their workstream siblings: statuses
-matter once people have project **history**, and image import benefits from
-D1's multi-file plumbing. If user feedback screams earlier, both can be
-pulled forward without dependency trouble.)*
+matter once people have project **history**. D4 stands alone now that D1
+is dropped — an image "pattern" is a multi-page pattern entity in the
+library (image page source behind the viewer's page abstraction), which
+never needed D1's per-project file list. If user feedback screams earlier,
+both can be pulled forward without dependency trouble.)*
 
 ---
 

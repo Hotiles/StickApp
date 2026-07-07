@@ -21,6 +21,7 @@ describe('normalizeBand – migrering av sparade lägen', () => {
       positionByPage: {},
       positionByPageV: {},
       visible: true,
+      lastMovedPage: null,
     });
   });
 
@@ -31,6 +32,19 @@ describe('normalizeBand – migrering av sparade lägen', () => {
     expect(band.positionByPage).toEqual({ 1: 0.3, 4: 0.7 });
     expect(band.positionByPageV).not.toBe(band.positionByPage); // egna objekt
     expect(band.orientation).toBe('vertikal');
+    expect(band.lastMovedPage).toBeNull();
+  });
+
+  it('läge utan lastMovedPage (före D7) får null', () => {
+    const old = {
+      orientation: 'horisontell',
+      positionByPage: { 2: 0.4 },
+      positionByPageV: { 2: 0.4 },
+      visible: true,
+    };
+    const band = normalizeBand(old);
+    expect(band.lastMovedPage).toBeNull();
+    expect(band.positionByPage).toEqual({ 2: 0.4 });
   });
 
   it('dagens form passerar orörd', () => {
@@ -39,6 +53,7 @@ describe('normalizeBand – migrering av sparade lägen', () => {
       positionByPage: { 1: 0.2 },
       positionByPageV: { 1: 0.8 },
       visible: true,
+      lastMovedPage: 3,
     };
     expect(normalizeBand(band)).toBe(band);
   });

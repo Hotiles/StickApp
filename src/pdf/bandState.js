@@ -20,11 +20,23 @@ export function cycleOrientation(orientation) {
  * Ger ett sparat bandläge dagens form. Äldre lägen (innan 'båda') hade en
  * gemensam positionskarta som återanvändes vid riktningsbyte — de får
  * samma positioner i båda kartorna, vilket motsvarar det gamla beteendet.
+ *
+ * lastMovedPage (D7): sidan där bandet senast flyttades eller passades in —
+ * "här är du"-markören i sidgalleriet. null tills bandet faktiskt rörts.
  */
 export function normalizeBand(band) {
   if (!band) {
-    return { orientation: 'horisontell', positionByPage: {}, positionByPageV: {}, visible: true };
+    return {
+      orientation: 'horisontell',
+      positionByPage: {},
+      positionByPageV: {},
+      visible: true,
+      lastMovedPage: null,
+    };
   }
-  if (band.positionByPageV) return band;
-  return { ...band, positionByPageV: { ...band.positionByPage } };
+  if (band.positionByPageV && band.lastMovedPage !== undefined) return band;
+  const next = { ...band };
+  if (!next.positionByPageV) next.positionByPageV = { ...next.positionByPage };
+  if (next.lastMovedPage === undefined) next.lastMovedPage = null;
+  return next;
 }

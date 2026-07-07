@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BandOverlay from './BandOverlay.jsx';
+import PageGallery from './PageGallery.jsx';
 import { stepBandFit, BAND_STEP_PT } from './bandFit.js';
 import { cycleOrientation, normalizeBand } from './bandState.js';
 
@@ -50,6 +51,8 @@ export default function PdfViewer({
   const bandThicknessOverrideRef = useRef(initialViewState?.bandThickness != null);
   // Inpassningsläget (D6): verktygsraden byts mot −/+ som stegar tjockleken.
   const [fittingBand, setFittingBand] = useState(false);
+  // Sidgalleriet (D7): rutnät med alla sidor för direkthopp.
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [renderError, setRenderError] = useState(null);
 
   const pointersRef = useRef(new Map());
@@ -391,7 +394,11 @@ export default function PdfViewer({
 
   function handleBandDragEnd(orientation, position) {
     const key = orientation === 'horisontell' ? 'positionByPage' : 'positionByPageV';
-    updateBand({ [key]: { ...bandRef.current[key], [pageNumRef.current]: position } });
+    updateBand({
+      [key]: { ...bandRef.current[key], [pageNumRef.current]: position },
+      // "Här är du" i sidgalleriet (D7): bandets senaste flytt är ditt varv
+      lastMovedPage: pageNumRef.current,
+    });
   }
 
   // D6: −/+ i inpassningsläget stegar tjockleken kantförankrat (bandFit.js)
@@ -418,6 +425,7 @@ export default function PdfViewer({
       thicknessPt = next.thicknessPt;
       nextBand[key] = { ...current[key], [page]: next.position };
     }
+    nextBand.lastMovedPage = page; // inpassning räknas också som "bandet är här"
     if (navigator.vibrate) navigator.vibrate(8);
     bandThicknessOverrideRef.current = true;
     setBandThicknessPt(thicknessPt);
@@ -518,9 +526,15 @@ export default function PdfViewer({
             >
               ‹
             </button>
-            <span className="pdf-pageinfo">
+            <button
+              className="pdf-pageinfo pdf-pageinfo-btn"
+              onClick={() => setGalleryOpen(true)}
+              disabled={numPages < 2}
+              aria-label={`Sida ${pageNum} av ${numPages || 1} – visa alla sidor`}
+              title="Visa alla sidor"
+            >
               {pageNum} / {numPages || '–'}
-            </span>
+            </button>
             <button
               className="btn-icon"
               onClick={() => goToPage(pageNum + 1)}
@@ -571,6 +585,19 @@ export default function PdfViewer({
           </>
         )}
       </div>
+
+      {galleryOpen && doc && (
+        <PageGallery
+          doc={doc}
+          currentPage={pageNum}
+          bandPage={band.lastMovedPage ?? null}
+          onPick={(page) => {
+            setGalleryOpen(false);
+            goToPage(page);
+          }}
+          onClose={() => setGalleryOpen(false)}
+        />
+      )}
     </div>
   );
 }

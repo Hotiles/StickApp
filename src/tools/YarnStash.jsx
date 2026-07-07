@@ -12,7 +12,7 @@ import TopBar from '../ui/TopBar.jsx';
 import Modal from '../ui/Modal.jsx';
 import YarnBall from '../ui/YarnBall.jsx';
 import { SkeletonTiles } from '../ui/Skeleton.jsx';
-import { PhotoThumb } from '../projects/FinishForm.jsx';
+import { PhotoThumb } from '../projects/ProjectInfoFields.jsx';
 
 /*
  * Garnkorgen: garnet man har hemma — foto, kvalitet, färg, mängd och

@@ -58,8 +58,8 @@ data model already supports most of it.
 
 | # | Change | Detail | Review ref |
 |---|--------|--------|-----------|
-| A1 | **Projektinfo editable from cast-on** | New "Projektinfo" item in the project long-press/overflow menu opening the existing FinishForm fields (yarn, needles, size, notes, photos) in edit mode on *ongoing* projects. FinishForm becomes a thin wrapper that pre-fills from these fields and adds the finish-specific bits. | §1, wish 2 |
-| A2 | **Started/finished dates** | Set `startedAt` at creation, `finishedAt` on finish; both editable (people mark things finished weeks late). Backfill on migration: `startedAt = createdAt`, `finishedAt = updatedAt` for already-finished projects, flagged as estimated. | §5, wish 3 |
+| A1 ✅ *(shipped July 2026)* | **Projektinfo editable from cast-on** | Auto-saving "Projektinfo" sheet (notes first — scribble, not form) opened in one tap via a pencil button in the project topbar, plus a menu entry. Shared `ProjectInfoFields`; FinishForm is now a thin wrapper adding the finish date and status change. | §1, wish 2 |
+| A2 ✅ *(shipped July 2026)* | **Started/finished dates** | Set `startedAt` at creation, `finishedAt` on finish; both editable (people mark things finished weeks late). Backfill in db migration v3 (and on old-backup restore): `startedAt = createdAt`, `finishedAt = updatedAt` for already-finished projects, flagged `datesEstimated` and shown with ≈. F1's date keying shipped in the same change. | §5, wish 3 |
 | A3 | **Project statuses: `vilar` and `rivdes upp`** | Extend `status` beyond pågående/färdigt. "Vilar" collapses the project into a separate, quieter section on the home screen (out of the way, never in your face, one tap to wake). "Rivdes upp" keeps history and notes-to-self ("the lessons of the ones that didn't make it") in the gallery with distinct visual treatment. | §6, wish 11 |
 | A4 | **Recipient link** | Optional reference from project → person in Måttbanken. Gives gift history per person and puts their measurements one tap from the pattern. Small, but it makes Måttbanken and projects feel like one app. | wish 18 |
 
@@ -231,9 +231,10 @@ release passes a recognizable user test.
 ### Release 1 — "The sofa test" *(reviewer's Tier 1, verbatim)*
 > After this release the reviewer hands the app to her knitting circle.
 
-- C1 Wake lock
-- A1 Projektinfo from cast-on
-- A2 Started/finished dates (+ F1 stats fix — do it in the same change)
+- C1 Wake lock ✅
+- A1 Projektinfo from cast-on ✅
+- A2 Started/finished dates (+ F1 stats fix — done in the same change) ✅
+  *(F1's "räknade varv" half still waits on B3.)*
 - B1 Linked counters
 - B2 Counter lock
 - B3 `totalTicks` (invisible, but land it now so history starts accruing)

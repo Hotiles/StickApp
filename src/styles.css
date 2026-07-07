@@ -99,6 +99,12 @@ button {
   cursor: pointer;
 }
 
+/* Synlig fokusring vid tangentbordsnavigering — aldrig vid tryck */
+:where(button, a):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* ===== Layout ===== */
 .view {
   height: 100%;
@@ -489,6 +495,13 @@ button {
   margin: 4px 0 0;
 }
 
+/* Projektinfo-arket: diskret kvitto på att allt sparas av sig självt */
+.autosave-hint {
+  margin: -6px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -605,6 +618,12 @@ input[type='range'] {
 }
 
 .stat-label {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.stats-footnote {
+  margin: 8px 2px 0;
   font-size: 13px;
   color: var(--text-dim);
 }
@@ -1319,10 +1338,21 @@ input[type='range'] {
 }
 
 .gallery-name {
-  padding: 10px 12px;
+  padding: 10px 12px 2px;
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 16px;
+  text-align: left;
+}
+
+.gallery-name:last-child {
+  padding-bottom: 10px;
+}
+
+.gallery-meta {
+  padding: 0 12px 10px;
+  font-size: 13px;
+  color: var(--text-dim);
   text-align: left;
 }
 

@@ -3,7 +3,8 @@ import { navigate } from '../app/router.jsx';
 import { getProject, updateProject, deleteProject, getBlob } from '../storage/storage.js';
 import TopBar from '../ui/TopBar.jsx';
 import Modal from '../ui/Modal.jsx';
-import FinishForm, { PhotoThumb } from './FinishForm.jsx';
+import ProjectInfoSheet from './ProjectInfoSheet.jsx';
+import { PhotoThumb, formatDate } from './ProjectInfoFields.jsx';
 import { generateShareCard, shareOrDownload } from './shareCard.js';
 import { yarnColorValue } from '../ui/yarnColors.jsx';
 
@@ -56,6 +57,10 @@ export default function ProjectDetails({ projectId }) {
     ['Garnåtgång', project.yarnAmount],
     ['Stickor', project.needleSize],
     ['Storlek', project.madeSize],
+    ['Påbörjat', formatDate(project.startedAt)],
+    // ≈ markerar datum som backfyllts vid migrering (UX-plan A2) — hellre
+    // synligt ungefärligt än tyst fel.
+    ['Färdigt', project.finishedAt ? `${project.datesEstimated ? '≈ ' : ''}${formatDate(project.finishedAt)}` : ''],
   ].filter(([, v]) => v);
 
   return (
@@ -133,7 +138,9 @@ export default function ProjectDetails({ projectId }) {
             <button
               className="menu-item"
               onClick={async () => {
-                await updateProject(projectId, { status: 'pågående' });
+                // Ett återupptaget projekt är inte färdigt — datumet sätts om
+                // på nytt vid nästa "Markera som färdigt".
+                await updateProject(projectId, { status: 'pågående', finishedAt: null, datesEstimated: false });
                 navigate(`/projekt/${projectId}`);
               }}
             >
@@ -178,12 +185,10 @@ export default function ProjectDetails({ projectId }) {
       )}
 
       {editing && (
-        <FinishForm
+        <ProjectInfoSheet
           project={project}
-          editOnly
-          onClose={() => setEditing(false)}
-          onSaved={(updated) => {
-            setProject(updated);
+          onClose={(updated) => {
+            if (updated) setProject(updated);
             setEditing(false);
           }}
         />

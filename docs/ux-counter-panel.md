@@ -169,14 +169,32 @@ targets. That retires the §2.2 constraint as the binding one and makes the
 reading strip the right next move instead of more shrinking.
 
 As built: a chevron on the lock rail folds the panel into a slim strip —
-27 pt tall in portrait (label + value per counter), a 44 pt column of bare
+27 pt tall in portrait (label + value per counter), a 46 pt column of bare
 values in landscape (no room for legible labels; order matches the panel).
-The strip is read-only but live: it shows the same primary number as the
-cards (rhythm counters show their repeat position) and action rows light
-up as a pill. One tap anywhere on the strip restores the panel. Manual
-only (never auto-hide), persisted per project as `countersCollapsed`,
-same lifecycle as `countersLocked`. When collapsed with the lock on, a
-small padlock shows in the strip.
+The strip shows the same primary number as the cards (rhythm counters show
+their repeat position) and action rows light up. Manual only (never
+auto-hide), persisted per project as `countersCollapsed`, same lifecycle
+as `countersLocked`. When collapsed with the lock on, a small padlock
+shows in the strip.
+
+**Honest post-ship evaluation → compact mode** *(same month)*: the first
+strip was read-only — one tap anywhere expanded the panel. That solved
+the space goal but broke the app's core contract *"one tap = one row"*
+inside the strip: living in it cost expand → tick → collapse, three taps
+per row, exactly the mode-cost §3.A warned about. Users spotted it
+immediately ("can I tap the number without opening?"). The fix reframes
+the strip from *reading strip* to **compact mode**: each value is a
+visible pill button and a tap ticks +1 — through the same
+`tickCounter` path as the cards, so linked followers (B1) and
+`totalTicks` (B3) stay honest, with the same haptic milestones. The
+expand affordance moved from "anywhere" to a dedicated generous chevron
+button. The lock applies in the strip too (dead taps + shake, no
+vibration); corrections (minus) and menus deliberately still require
+expanding — miscounts are rare, rows are not. Known residual risks, by
+design: a tap meant as "expand" can hit a pill (mitigated by visible
+pill boundaries + tick animation + haptic receipt, and minus one
+expand away), and the chevron affordances are small — acceptable under
+the stated "tight UI over big targets" priority.
 
 ## 6. Recommendation
 

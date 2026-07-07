@@ -1230,26 +1230,35 @@ input[type='range'] {
 }
 
 /*
- * Läsremsan: panelen hopfälld till en smal remsa med livevärden —
- * mönstret får skärmen, räknarna är ett tryck bort. Hela remsan är
- * en knapp som fäller ut panelen igen.
+ * Kompaktläget: panelen hopfälld till en smal remsa som fortfarande
+ * RÄKNAR — tryck på en pill tickar +1, mönstret får skärmen. Pillarna
+ * har synlig yta (tryckbart ska se tryckbart ut) och chevronen fäller
+ * ut hela panelen för backning, menyer och lås.
  */
 .counter-strip {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  padding: 4px 12px calc(4px + var(--safe-bottom));
+  gap: 5px;
+  padding: 4px 8px calc(4px + var(--safe-bottom));
   background: var(--bg);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
 
-.counter-strip-item {
+.counter-strip-btn {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.counter-strip-btn:active {
+  background: var(--accent-soft);
 }
 
 .counter-strip-label {
@@ -1266,20 +1275,22 @@ input[type='range'] {
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  line-height: 1.2;
+  line-height: 1.3;
   color: var(--project-color, var(--text));
+  animation: counter-tick 0.16s ease-out;
 }
 
-/* Åtgärdsvarv: värdet lyser som en liten pill även i hopfällt läge */
-.counter-strip-due .counter-strip-value {
+/* Åtgärdsvarv: hela pillen lyser även i hopfällt läge */
+.counter-strip-due {
   background: var(--accent-soft);
-  border-radius: 999px;
-  padding: 0 6px;
+  outline: 1.5px solid var(--project-color, var(--accent));
+  outline-offset: -1px;
 }
 
 .counter-strip-lock,
-.counter-strip-chevron {
+.counter-strip-expand {
   display: flex;
+  align-items: center;
   color: var(--text-dim);
 }
 
@@ -1288,7 +1299,18 @@ input[type='range'] {
   height: 12px;
 }
 
-.counter-strip-chevron {
+/* Utfällningen: generös tryckyta — enda vägen till backning och meny */
+.counter-strip-expand {
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.counter-strip-expand:active {
+  background: var(--accent-soft);
+}
+
+.counter-strip-expand svg {
   transform: rotate(180deg);
 }
 
@@ -1416,34 +1438,43 @@ input[type='range'] {
     border-radius: var(--radius);
   }
 
-  /* Läsremsan blir en smal stående remsa på högerkanten */
+  /* Kompaktremsan blir en smal stående remsa på högerkanten */
   .project-view > .counter-strip {
     grid-area: counters;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 12px;
-    width: calc(44px + env(safe-area-inset-right, 0px));
-    padding: 10px calc(4px + env(safe-area-inset-right, 0px)) calc(10px + var(--safe-bottom)) 4px;
+    gap: 8px;
+    width: calc(46px + env(safe-area-inset-right, 0px));
+    padding: 8px calc(4px + env(safe-area-inset-right, 0px)) calc(8px + var(--safe-bottom)) 4px;
     border-top: none;
     border-left: 1px solid var(--border);
     overflow-y: auto;
   }
 
-  /* 44 pt bredd rymmer inga läsbara etiketter — visa bara värdena,
-     i samma ordning som korten i den utfällda panelen */
-  .project-view .counter-strip-item {
+  /* 46 pt bredd rymmer inga läsbara etiketter — visa bara värdena,
+     i samma ordning som korten i den utfällda panelen. Pillarna blir
+     fullbreda knappar med rejäl höjd. */
+  .project-view .counter-strip-btn {
     flex-direction: column;
     align-items: center;
     gap: 0;
+    width: 100%;
+    padding: 8px 0;
+    border-radius: 10px;
+    flex-shrink: 0;
   }
 
   .project-view .counter-strip-label {
     display: none;
   }
 
-  .project-view .counter-strip-chevron {
-    transform: rotate(90deg);
+  .project-view .counter-strip-expand {
     margin-top: auto;
+    padding: 8px 4px;
+  }
+
+  .project-view .counter-strip-expand svg {
+    transform: rotate(90deg);
   }
 
   .project-view .counter-collapsebtn svg {

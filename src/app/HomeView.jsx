@@ -167,6 +167,12 @@ export default function HomeView() {
             </span>
             Måttbanken
           </button>
+          <button className="shortcut" onClick={() => navigate('/statistik')}>
+            <span className="shortcut-icon">
+              <SparkIcon />
+            </span>
+            Ditt stickår
+          </button>
         </section>
       </main>
 
@@ -256,6 +262,15 @@ function PdfIcon() {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" strokeLinejoin="round" />
+      <path d="M19 16l.9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9z" strokeLinejoin="round" />
     </svg>
   );
 }

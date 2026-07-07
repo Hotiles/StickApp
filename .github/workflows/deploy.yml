@@ -29,7 +29,7 @@ jobs:
       # Cache-bump-disciplin: varje deploy får en egen cacheversion,
       # så gamla service worker-cachar rensas automatiskt hos användarna.
       - name: Stämpla service worker-cacheversion
-        run: sed -i "s/stickan-v1/stickan-${GITHUB_SHA::10}/" dist/sw.js
+        run: sed -i "s/stickan-v[0-9]*/stickan-${GITHUB_SHA::10}/" dist/sw.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

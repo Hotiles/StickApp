@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { navigate } from '../app/router.jsx';
 import { listProjects } from '../storage/storage.js';
 import TopBar from '../ui/TopBar.jsx';
-import { PhotoThumb } from './FinishForm.jsx';
+import { PhotoThumb, formatMonthYear } from './ProjectInfoFields.jsx';
 import YarnBall from '../ui/YarnBall.jsx';
 import { SkeletonTiles } from '../ui/Skeleton.jsx';
 
@@ -10,7 +10,10 @@ export default function FinishedGallery() {
   const [projects, setProjects] = useState(null);
 
   useEffect(() => {
-    listProjects('färdigt').then(setProjects);
+    listProjects('färdigt').then((all) =>
+      // Senast färdigstickat först — inte senast rörd i appen
+      setProjects(all.sort((a, b) => (b.finishedAt || b.updatedAt || '').localeCompare(a.finishedAt || a.updatedAt || '')))
+    );
   }, []);
 
   return (
@@ -42,6 +45,12 @@ export default function FinishedGallery() {
                     )}
                   </div>
                   <span className="gallery-name">{p.name}</span>
+                  {p.finishedAt && (
+                    <span className="gallery-meta">
+                      {p.datesEstimated ? '≈ ' : ''}
+                      {formatMonthYear(p.finishedAt)}
+                    </span>
+                  )}
                 </button>
               </li>
             ))}

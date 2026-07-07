@@ -1,4 +1,5 @@
 import { getDb, STORES } from './db.js';
+import { normalizeProjectDates } from './normalize.js';
 
 /*
  * API-lager för all datalagring (§5 i specen): komponenter pratar bara med
@@ -184,7 +185,10 @@ export async function createProject({ name, patternId = null, color = null }) {
     difficulty: null,
     notes: '',
     photoBlobIds: [],
+    finishedAt: null,
+    datesEstimated: false,
   });
+  project.startedAt = project.createdAt;
   await db.put(STORES.projects, project);
   return project;
 }
@@ -303,7 +307,8 @@ const DATA_STORES = [STORES.folders, STORES.patterns, STORES.projects, STORES.pe
 function writeDump(tx, { folders, patterns, projects, persons = [], yarns = [], blobRecords }) {
   for (const f of folders) tx.objectStore(STORES.folders).put(f);
   for (const p of patterns) tx.objectStore(STORES.patterns).put(p);
-  for (const p of projects) tx.objectStore(STORES.projects).put(p);
+  // Projekt från äldre backuper saknar startedAt/finishedAt — backfyll vid inläsning
+  for (const p of projects) tx.objectStore(STORES.projects).put(normalizeProjectDates(p));
   for (const p of persons) tx.objectStore(STORES.persons).put(p);
   for (const y of yarns) tx.objectStore(STORES.yarns).put(y);
   for (const b of blobRecords) tx.objectStore(STORES.blobs).put(b);

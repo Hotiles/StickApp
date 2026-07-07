@@ -16,6 +16,7 @@ import PdfViewer from '../pdf/PdfViewer.jsx';
 import CounterPanel from '../counters/CounterPanel.jsx';
 import Modal from '../ui/Modal.jsx';
 import FinishForm from './FinishForm.jsx';
+import ProjectInfoSheet from './ProjectInfoSheet.jsx';
 import PatternThumb from '../patterns/PatternThumb.jsx';
 import { YarnColorPicker, yarnColorValue } from '../ui/yarnColors.jsx';
 import { useWakeLock } from '../ui/useWakeLock.js';
@@ -34,6 +35,7 @@ export default function ProjectView({ projectId }) {
   const [renaming, setRenaming] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  const [editingInfo, setEditingInfo] = useState(false);
   const [pickingPattern, setPickingPattern] = useState(false);
   const [pickingColor, setPickingColor] = useState(false);
   const [editingDeadline, setEditingDeadline] = useState(null); // { deadline, label }
@@ -168,6 +170,17 @@ export default function ProjectView({ projectId }) {
           ‹
         </button>
         <h1 className="topbar-title">{project.name}</h1>
+        <button
+          className="btn-icon"
+          onClick={() => {
+            // Anteckningen mitt i varvet: ett tryck från mönstret (UX-plan A1)
+            flush();
+            setEditingInfo(true);
+          }}
+          aria-label="Projektinfo och anteckningar"
+        >
+          <PencilIcon />
+        </button>
         <button className="btn-icon" onClick={() => setMenuOpen(true)} aria-label="Projektmeny">
           ⋯
         </button>
@@ -210,6 +223,17 @@ export default function ProjectView({ projectId }) {
       {menuOpen && (
         <Modal title={project.name} onClose={() => setMenuOpen(false)}>
           <div className="menu-list">
+            <button
+              className="menu-item"
+              onClick={() => {
+                setMenuOpen(false);
+                flush();
+                setEditingInfo(true);
+              }}
+            >
+              Projektinfo & anteckningar
+              <span className="menu-item-meta">Garn, stickor, foton — sparas medan du skriver</span>
+            </button>
             <button
               className="menu-item menu-item-primary"
               onClick={() => {
@@ -313,6 +337,18 @@ export default function ProjectView({ projectId }) {
         </Modal>
       )}
 
+      {editingInfo && (
+        <ProjectInfoSheet
+          project={project}
+          onClose={(updated) => {
+            setEditingInfo(false);
+            // Räknare/vyläge kan inte ha ändrats medan arket var öppet
+            // (flush körs innan det öppnas) — DB-versionen är sanningen.
+            if (updated) setProject(updated);
+          }}
+        />
+      )}
+
       {finishing && (
         <FinishForm
           project={project}
@@ -410,6 +446,14 @@ export default function ProjectView({ projectId }) {
         />
       )}
     </div>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z" strokeLinejoin="round" />
+    </svg>
   );
 }
 

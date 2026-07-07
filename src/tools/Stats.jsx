@@ -30,7 +30,11 @@ export default function Stats() {
 
   const year = new Date().getFullYear();
   const finished = projects.filter((p) => p.status === 'färdigt');
-  const finishedThisYear = finished.filter((p) => (p.updatedAt || '').startsWith(String(year)));
+  // F1: årtal räknas på finishedAt (A2), aldrig updatedAt — att öppna ett
+  // gammalt projekt ska inte flytta det till årets skörd. Fallback för
+  // poster som ännu inte migrerats.
+  const finishedDate = (p) => p.finishedAt || p.updatedAt || '';
+  const finishedThisYear = finished.filter((p) => finishedDate(p).startsWith(String(year)));
   const ongoing = projects.filter((p) => p.status === 'pågående');
   const totalRows = projects.reduce(
     (sum, p) => sum + (p.counters || []).reduce((s, c) => s + (c.value || 0), 0),
@@ -43,9 +47,12 @@ export default function Stats() {
     : null;
 
   const byYear = new Map();
+  const estimatedYears = new Set();
   for (const p of finished) {
-    const y = (p.updatedAt || '').slice(0, 4);
-    if (y) byYear.set(y, (byYear.get(y) || 0) + 1);
+    const y = finishedDate(p).slice(0, 4);
+    if (!y) continue;
+    byYear.set(y, (byYear.get(y) || 0) + 1);
+    if (p.datesEstimated) estimatedYears.add(y);
   }
   const years = [...byYear.entries()].sort((a, b) => b[0].localeCompare(a[0]));
 
@@ -92,11 +99,17 @@ export default function Stats() {
                     <div key={y} className="details-row">
                       <dt>{y}</dt>
                       <dd>
-                        {count} {count === 1 ? 'projekt' : 'projekt'}
+                        {estimatedYears.has(y) ? '≈ ' : ''}
+                        {count} projekt
                       </dd>
                     </div>
                   ))}
                 </dl>
+                {estimatedYears.size > 0 && (
+                  <p className="stats-footnote">
+                    ≈ ungefärligt — projekt som blev färdiga innan Stickan höll koll på datum.
+                  </p>
+                )}
               </section>
             )}
           </>

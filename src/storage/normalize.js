@@ -31,19 +31,34 @@ export function normalizeProjectDates(project) {
  * countersLocked (B2). Äldre poster backfyllas: totalTicks = nuvarande
  * värde (bästa tillgängliga uppskattning — historik före migreringen är
  * borta) och låset av.
+ *
+ * v5 (B4): den enkla rytmen repeatEvery ersätts av formningssekvensen
+ * sequence — repeatEvery: 6 blir [{every: 6, times: null}] (öppen rytm,
+ * exakt samma beteende) och fältet tas bort så att de två formerna aldrig
+ * kan säga emot varandra.
  */
 export function normalizeProjectCounters(project) {
   if (!project) return project;
   const counters = project.counters || [];
   const needsTicks = counters.some((c) => c.totalTicks === undefined);
+  const needsSequence = counters.some((c) => c.repeatEvery !== undefined);
   const needsLock = project.countersLocked === undefined;
-  if (!needsTicks && !needsLock) return project;
+  if (!needsTicks && !needsSequence && !needsLock) return project;
 
   const p = { ...project };
-  if (needsTicks) {
-    p.counters = counters.map((c) =>
-      c.totalTicks === undefined ? { ...c, totalTicks: c.value || 0 } : c
-    );
+  if (needsTicks || needsSequence) {
+    p.counters = counters.map((c) => {
+      let next = c;
+      if (next.totalTicks === undefined) next = { ...next, totalTicks: next.value || 0 };
+      if (next.repeatEvery !== undefined) {
+        const { repeatEvery, ...rest } = next;
+        next =
+          repeatEvery >= 1 && !rest.sequence
+            ? { ...rest, sequence: [{ every: repeatEvery, times: null }] }
+            : rest;
+      }
+      return next;
+    });
   }
   if (needsLock) p.countersLocked = false;
   return p;

@@ -3,6 +3,7 @@ import Counter from './Counter.jsx';
 import Modal from '../ui/Modal.jsx';
 import { uuid } from '../storage/storage.js';
 import { tickCounter, followersOf, followCandidates, nextTickMilestone } from './tick.js';
+import { counterSequence, isSimpleRhythm, describeSequence, sequenceEndRow } from './sequence.js';
 
 /*
  * Räknarpanelen: dockad nertill, alltid synlig i mönsterläge.
@@ -17,12 +18,30 @@ import { tickCounter, followersOf, followCandidates, nextTickMilestone } from '.
  * tickar med och livstidsräkningen totalTicks (B3) hålls ärlig.
  */
 const MAX_COUNTERS = 6;
+const MAX_SEQUENCE_STEPS = 6;
+
+/*
+ * Upprepningsredigeraren (B4) jobbar med strängar tills man sparar.
+ * Tomma/ogiltiga rader hoppas över, och ett steg utan antal betyder
+ * "tills vidare" — stegen efter det kan aldrig nås och kapas därför.
+ */
+function parseSequenceSteps(rows) {
+  const steps = [];
+  for (const row of rows) {
+    const every = parseInt(row.every, 10);
+    if (!(every >= 1)) continue;
+    const times = parseInt(row.times, 10);
+    steps.push({ every, times: times >= 1 ? times : null });
+    if (!(times >= 1)) break;
+  }
+  return steps;
+}
 
 export default function CounterPanel({ counters, locked, onChange, onToggleLock }) {
   const [menuFor, setMenuFor] = useState(null); // counter-id
   const [renaming, setRenaming] = useState(null); // { id, label }
   const [settingTarget, setSettingTarget] = useState(null); // { id, target }
-  const [settingRepeat, setSettingRepeat] = useState(null); // { id, repeatEvery }
+  const [settingRepeat, setSettingRepeat] = useState(null); // { id, steps: [{every, times}], advanced }
   const [pickingFollow, setPickingFollow] = useState(null); // counter-id
   const [lockNudge, setLockNudge] = useState(false);
 
@@ -143,14 +162,28 @@ export default function CounterPanel({ counters, locked, onChange, onToggleLock 
             <button
               className="menu-item"
               onClick={() => {
-                setSettingRepeat({ id: menuCounter.id, repeatEvery: menuCounter.repeatEvery || '' });
+                const steps = counterSequence(menuCounter);
+                setSettingRepeat({
+                  id: menuCounter.id,
+                  steps: steps
+                    ? steps.map((s) => ({
+                        every: String(s.every),
+                        times: s.times == null ? '' : String(s.times),
+                      }))
+                    : [{ every: '', times: '' }],
+                  advanced: steps ? !isSimpleRhythm(steps) : false,
+                });
                 setMenuFor(null);
               }}
             >
-              {menuCounter.repeatEvery
-                ? `Ändra upprepning (var ${menuCounter.repeatEvery}:e)`
-                : 'Upprepning …'}
-              <span className="menu-item-meta">T.ex. ”ökning var 6:e varv”</span>
+              {(() => {
+                const steps = counterSequence(menuCounter);
+                if (!steps) return 'Upprepning …';
+                return steps.length === 1
+                  ? `Ändra upprepning (var ${steps[0].every}:e)`
+                  : `Ändra upprepning (${steps.length} steg)`;
+              })()}
+              <span className="menu-item-meta">T.ex. ”ökning var 6:e varv” — eller en hel sekvens</span>
             </button>
             {menuFollows ? (
               <button
@@ -263,54 +296,21 @@ export default function CounterPanel({ counters, locked, onChange, onToggleLock 
       )}
 
       {settingRepeat && (
-        <Modal
-          title="Upprepning"
+        <RepeatEditor
+          state={settingRepeat}
+          onChange={setSettingRepeat}
+          onSave={() => {
+            const steps = parseSequenceSteps(settingRepeat.steps);
+            // repeatEvery nollas så att en kvarliggande gammal rytm aldrig
+            // kan återuppstå bredvid den nya sekvensen
+            updateCounter(settingRepeat.id, {
+              sequence: steps.length ? steps : null,
+              repeatEvery: null,
+            });
+            setSettingRepeat(null);
+          }}
           onClose={() => setSettingRepeat(null)}
-          actions={
-            <>
-              <button className="btn" onClick={() => setSettingRepeat(null)}>
-                Avbryt
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  const n = parseInt(settingRepeat.repeatEvery, 10);
-                  updateCounter(settingRepeat.id, { repeatEvery: n > 1 ? n : null });
-                  setSettingRepeat(null);
-                }}
-              >
-                Spara
-              </button>
-            </>
-          }
-        >
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const n = parseInt(settingRepeat.repeatEvery, 10);
-              updateCounter(settingRepeat.id, { repeatEvery: n > 1 ? n : null });
-              setSettingRepeat(null);
-            }}
-          >
-            <label className="field">
-              <span className="field-label">
-                Var N:e varv händer något? Räknaren visar var i repetitionen du är och lyser upp på
-                åtgärdsvarvet. (Lämna tomt för att ta bort.)
-              </span>
-              <input
-                className="input"
-                autoFocus
-                type="number"
-                inputMode="numeric"
-                min="2"
-                max="999"
-                value={settingRepeat.repeatEvery}
-                onChange={(e) => setSettingRepeat({ ...settingRepeat, repeatEvery: e.target.value })}
-                placeholder="T.ex. 6"
-              />
-            </label>
-          </form>
-        </Modal>
+        />
       )}
 
       {renaming && (
@@ -353,6 +353,152 @@ export default function CounterPanel({ counters, locked, onChange, onToggleLock 
         </Modal>
       )}
     </div>
+  );
+}
+
+/*
+ * Upprepningsdialogen (B4). Enkel rytm ("var 6:e varv") är standardvyn —
+ * garnhalsduksstickaren ska aldrig se raglanmaskineriet. "Lägg till steg"
+ * fäller ut sekvensredigeraren: ordnade steg "var N:e varv, M ggr" där
+ * sista stegets antal kan lämnas tomt (= tills vidare). Förhandsraden
+ * läser tillbaka sekvensen som mönstret säger den, med sista åtgärdsvarvet
+ * utskrivet — det är kvittot på att man matat in rätt.
+ */
+function RepeatEditor({ state, onChange, onSave, onClose }) {
+  const parsed = parseSequenceSteps(state.steps);
+  const endRow = parsed.length ? sequenceEndRow(parsed) : null;
+
+  function setStep(index, field, value) {
+    const steps = state.steps.map((row, i) => (i === index ? { ...row, [field]: value } : row));
+    onChange({ ...state, steps });
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    onSave();
+  }
+
+  return (
+    <Modal
+      title="Upprepning"
+      onClose={onClose}
+      actions={
+        <>
+          <button className="btn" onClick={onClose}>
+            Avbryt
+          </button>
+          <button className="btn btn-primary" onClick={onSave}>
+            Spara
+          </button>
+        </>
+      }
+    >
+      {!state.advanced ? (
+        <form onSubmit={submit}>
+          <label className="field">
+            <span className="field-label">
+              Var N:e varv händer något? Räknaren visar var i repetitionen du är och lyser upp på
+              åtgärdsvarvet. (Lämna tomt för att ta bort.)
+            </span>
+            <input
+              className="input"
+              autoFocus
+              type="number"
+              inputMode="numeric"
+              min="2"
+              max="999"
+              value={state.steps[0].every}
+              onChange={(e) => setStep(0, 'every', e.target.value)}
+              placeholder="T.ex. 6"
+            />
+          </label>
+          <button
+            type="button"
+            className="btn seq-add-step"
+            onClick={() =>
+              onChange({
+                ...state,
+                advanced: true,
+                steps: [...state.steps, { every: '', times: '' }],
+              })
+            }
+          >
+            Lägg till steg …
+          </button>
+          <p className="seq-hint">
+            För mönster som byter rytm: ”öka vart 4:e varv 3 ggr, sedan vart 6:e varv 4 ggr”.
+          </p>
+        </form>
+      ) : (
+        <form onSubmit={submit}>
+          <div className="seq-steps">
+            {state.steps.map((row, i) => (
+              <div className="seq-step" key={i}>
+                <span className="seq-step-word">var</span>
+                <input
+                  className="input seq-step-input"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  max="999"
+                  value={row.every}
+                  onChange={(e) => setStep(i, 'every', e.target.value)}
+                  placeholder="6"
+                  aria-label={`Steg ${i + 1}: var N:e varv`}
+                />
+                <span className="seq-step-word">:e varv,</span>
+                <input
+                  className="input seq-step-input"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  max="999"
+                  value={row.times}
+                  onChange={(e) => setStep(i, 'times', e.target.value)}
+                  placeholder={i === state.steps.length - 1 ? '∞' : '3'}
+                  aria-label={`Steg ${i + 1}: antal gånger`}
+                />
+                <span className="seq-step-word">ggr</span>
+                {state.steps.length > 1 && (
+                  <button
+                    type="button"
+                    className="seq-step-remove"
+                    aria-label={`Ta bort steg ${i + 1}`}
+                    onClick={() =>
+                      onChange({ ...state, steps: state.steps.filter((_, j) => j !== i) })
+                    }
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {state.steps.length < MAX_SEQUENCE_STEPS && (
+            <button
+              type="button"
+              className="btn seq-add-step"
+              onClick={() =>
+                onChange({ ...state, steps: [...state.steps, { every: '', times: '' }] })
+              }
+            >
+              Lägg till steg
+            </button>
+          )}
+          {parsed.length > 0 ? (
+            <p className="seq-preview">
+              {describeSequence(parsed)}
+              {endRow ? ` — sista åtgärden på varv ${endRow}.` : null}
+            </p>
+          ) : (
+            <p className="seq-hint">
+              Lämna sista stegets antal tomt så fortsätter rytmen tills vidare. Töm allt för att ta
+              bort upprepningen.
+            </p>
+          )}
+        </form>
+      )}
+    </Modal>
   );
 }
 

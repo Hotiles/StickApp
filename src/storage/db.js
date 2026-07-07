@@ -6,7 +6,7 @@ import { normalizeProject } from './normalize.js';
  * inga direkta anrop hit från komponenter.
  */
 export const DB_NAME = 'stickan';
-export const DB_VERSION = 4;
+export const DB_VERSION = 5;
 
 export const STORES = {
   folders: 'folders',
@@ -48,7 +48,8 @@ export function getDb() {
         if (!db.objectStoreNames.contains(STORES.yarns)) {
           db.createObjectStore(STORES.yarns, { keyPath: 'id' });
         }
-        // v3: startedAt/finishedAt, v4: totalTicks + räknarlås —
+        // v3: startedAt/finishedAt, v4: totalTicks + räknarlås,
+        // v5: repeatEvery → sequence (B4) —
         // backfyll befintliga poster (normalizeProject är idempotent)
         if (oldVersion >= 1 && oldVersion < DB_VERSION) {
           const store = tx.objectStore(STORES.projects);

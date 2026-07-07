@@ -24,6 +24,21 @@ stannar på enheten.
   eller laddas ner. Återställning med förhandsvisning och två lägen:
   **Ersätt allt** eller **Slå ihop** (nyast vinner — samma logik som en
   framtida sync kommer använda, enhetstestad redan nu).
+- **Utseende** — självhostad displayserif (Fraunces), mörkt läge som följer
+  systemet (med dämpad PDF-rendering för kvällsstickning), PDF-miniatyrer i
+  bibliotek och projektkort, garnfärg per projekt som tonar kort och räknare,
+  "Fortsätt sticka"-hjältekort, skelett-laddare och illustrerade tomma
+  tillstånd.
+- **Smartare räknare** — mål ("varv 47 av 120") med progresslinje,
+  upprepningar ("ökning var 6:e varv") som lyser upp på åtgärdsvarvet,
+  tick-animation, tiotalsfirande och synlig backa-knapp.
+- **Deadline** — datum + etikett per projekt med nedräkning på kortet.
+- **Delningskort** — färdiga projekt som genererad bild (foto, garn, stickor,
+  svårighetsgrad) att skicka via delningsarket.
+- **Garnkorgen** — inventarie över garnet hemma med foto, färg och mängd.
+- **Måttbanken** — personer och deras mått ("mammas fotlängd 24 cm").
+- **Masktäthet** — provlapp + önskat mått → maskor och varv.
+- **Ditt stickår** — statistik: färdiga projekt, räknade varv, foton m.m.
 
 ## Teknik
 

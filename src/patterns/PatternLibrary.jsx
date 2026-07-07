@@ -12,6 +12,9 @@ import {
 import { importPdfFile } from './importPattern.js';
 import TopBar from '../ui/TopBar.jsx';
 import Modal from '../ui/Modal.jsx';
+import PatternThumb from './PatternThumb.jsx';
+import YarnBall from '../ui/YarnBall.jsx';
+import { SkeletonTiles } from '../ui/Skeleton.jsx';
 import { NewProjectModal } from '../app/HomeView.jsx';
 
 /*
@@ -108,8 +111,11 @@ export default function PatternLibrary() {
 
       <main className="view-body">
         {error && <p className="form-error">{error}</p>}
-        {patterns === null ? null : patterns.length === 0 ? (
+        {patterns === null ? (
+          <SkeletonTiles count={4} />
+        ) : patterns.length === 0 ? (
           <div className="empty-state">
+            <YarnBall />
             <p>Inga mönster här än.</p>
             <p className="empty-state-hint">
               Tryck på ”+ PDF” för att importera ett mönster — eller dela en PDF till Stickan från en
@@ -117,16 +123,21 @@ export default function PatternLibrary() {
             </p>
           </div>
         ) : (
-          <ul className="card-list">
+          <ul className="pattern-grid">
             {patterns.map((p) => (
-              <li key={p.id} className="pattern-row">
+              <li key={p.id} className="pattern-card">
                 <button className="pattern-open" onClick={() => navigate(`/monster/visa/${p.id}`)}>
+                  <PatternThumb pattern={p} className="pattern-card-thumb" />
                   <span className="pattern-name">{p.name}</span>
                   <span className="pattern-meta">
                     {p.pageCount} sidor · {formatSize(p.fileSize)}
                   </span>
                 </button>
-                <button className="btn-icon" onClick={() => setPatternMenu(p)} aria-label={`Meny för ${p.name}`}>
+                <button
+                  className="pattern-card-menu"
+                  onClick={() => setPatternMenu(p)}
+                  aria-label={`Meny för ${p.name}`}
+                >
                   ⋯
                 </button>
               </li>

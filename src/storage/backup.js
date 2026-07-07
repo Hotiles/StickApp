@@ -11,7 +11,7 @@ export const BACKUP_FORMAT_VERSION = 1;
  */
 
 export async function createBackupZip() {
-  const { folders, patterns, projects, settings, blobRecords } = await dumpAll();
+  const { folders, patterns, projects, persons, yarns, settings, blobRecords } = await dumpAll();
 
   const data = {
     app: 'stickan',
@@ -20,6 +20,8 @@ export async function createBackupZip() {
     folders,
     patterns,
     projects,
+    persons,
+    yarns,
     settings: { lastBackupAt: settings.lastBackupAt },
     blobs: blobRecords.map(({ id, type, size, createdAt }) => ({ id, type, size, createdAt })),
   };
@@ -122,6 +124,8 @@ export async function restoreReplace({ data, blobRecords }) {
     folders: data.folders,
     patterns: data.patterns,
     projects: data.projects,
+    persons: data.persons || [],
+    yarns: data.yarns || [],
     blobRecords,
   });
 }
@@ -132,6 +136,8 @@ export async function restoreMerge({ data, blobRecords }) {
     folders: data.folders,
     patterns: data.patterns,
     projects: data.projects,
+    persons: data.persons || [],
+    yarns: data.yarns || [],
     blobRecords,
   });
   await writeMerged(merged);

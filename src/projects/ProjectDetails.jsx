@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { navigate } from '../app/router.jsx';
-import { getProject, updateProject, deleteProject } from '../storage/storage.js';
+import { getProject, updateProject, deleteProject, getBlob } from '../storage/storage.js';
 import TopBar from '../ui/TopBar.jsx';
 import Modal from '../ui/Modal.jsx';
 import FinishForm, { PhotoThumb } from './FinishForm.jsx';
+import { generateShareCard, shareOrDownload } from './shareCard.js';
+import { yarnColorValue } from '../ui/yarnColors.jsx';
 
 export default function ProjectDetails({ projectId }) {
   const [project, setProject] = useState(null);
@@ -12,6 +14,25 @@ export default function ProjectDetails({ projectId }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [viewPhoto, setViewPhoto] = useState(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState(null);
+
+  async function handleShareCard() {
+    if (sharing) return;
+    setSharing(true);
+    setShareError(null);
+    try {
+      const photoBlob = project.photoBlobIds?.[0] ? await getBlob(project.photoBlobIds[0]) : null;
+      const card = await generateShareCard(project, photoBlob, yarnColorValue(project.color));
+      const safeName = project.name.replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase() || 'projekt';
+      await shareOrDownload(card, `${safeName}.jpg`);
+      setMenuOpen(false);
+    } catch {
+      setShareError('Kunde inte skapa delningskortet.');
+    } finally {
+      setSharing(false);
+    }
+  }
 
   useEffect(() => {
     getProject(projectId).then((p) => (p ? setProject(p) : setMissing(true)));
@@ -95,6 +116,11 @@ export default function ProjectDetails({ projectId }) {
       {menuOpen && (
         <Modal title={project.name} onClose={() => setMenuOpen(false)}>
           <div className="menu-list">
+            <button className="menu-item menu-item-primary" onClick={handleShareCard} disabled={sharing}>
+              {sharing ? 'Skapar kortet …' : 'Dela projektkort ✨'}
+              <span className="menu-item-meta">Bild med foto, garn och stickor</span>
+            </button>
+            {shareError && <p className="form-error">{shareError}</p>}
             <button
               className="menu-item"
               onClick={() => {

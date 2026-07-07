@@ -15,6 +15,8 @@ import PdfViewer from '../pdf/PdfViewer.jsx';
 import CounterPanel from '../counters/CounterPanel.jsx';
 import Modal from '../ui/Modal.jsx';
 import FinishForm from './FinishForm.jsx';
+import PatternThumb from '../patterns/PatternThumb.jsx';
+import { YarnColorPicker, yarnColorValue } from '../ui/yarnColors.jsx';
 
 /*
  * Projektvyn (§4.3): mönsterläge + räknarpanel. Allt state (sida, zoom,
@@ -31,6 +33,8 @@ export default function ProjectView({ projectId }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [pickingPattern, setPickingPattern] = useState(false);
+  const [pickingColor, setPickingColor] = useState(false);
+  const [editingDeadline, setEditingDeadline] = useState(null); // { deadline, label }
   const [settings, setSettings] = useState(null);
 
   const { doc, loading: pdfLoading, error: pdfError } = usePdfDocument(pdfBlob);
@@ -143,7 +147,7 @@ export default function ProjectView({ projectId }) {
   if (!project || !settings) return <div className="view loading-view">Laddar …</div>;
 
   return (
-    <div className="view project-view">
+    <div className="view project-view" style={{ '--project-color': yarnColorValue(project.color) }}>
       <header className="topbar">
         <button className="btn-icon topbar-back" onClick={() => navigate('/')} aria-label="Tillbaka">
           ‹
@@ -220,6 +224,28 @@ export default function ProjectView({ projectId }) {
               Byt namn
             </button>
             <button
+              className="menu-item"
+              onClick={() => {
+                setMenuOpen(false);
+                setPickingColor(true);
+              }}
+            >
+              Byt garnfärg
+            </button>
+            <button
+              className="menu-item"
+              onClick={() => {
+                setMenuOpen(false);
+                setEditingDeadline({
+                  deadline: project.deadline || '',
+                  label: project.deadlineLabel || '',
+                });
+              }}
+            >
+              {project.deadline ? 'Ändra deadline' : 'Sätt deadline …'}
+              <span className="menu-item-meta">T.ex. ”Julklapp, klar 24 december”</span>
+            </button>
+            <button
               className="menu-item menu-item-danger"
               onClick={() => {
                 setMenuOpen(false);
@@ -281,6 +307,84 @@ export default function ProjectView({ projectId }) {
             navigate(`/fardiga/${updated.id}`);
           }}
         />
+      )}
+
+      {editingDeadline && (
+        <Modal
+          title="Deadline"
+          onClose={() => setEditingDeadline(null)}
+          actions={
+            <>
+              {project.deadline && (
+                <button
+                  className="btn btn-danger"
+                  onClick={async () => {
+                    const updated = await updateProject(projectId, {
+                      deadline: null,
+                      deadlineLabel: '',
+                    });
+                    setProject(updated);
+                    setEditingDeadline(null);
+                  }}
+                >
+                  Ta bort
+                </button>
+              )}
+              <button className="btn" onClick={() => setEditingDeadline(null)}>
+                Avbryt
+              </button>
+              <button
+                className="btn btn-primary"
+                disabled={!editingDeadline.deadline}
+                onClick={async () => {
+                  const updated = await updateProject(projectId, {
+                    deadline: editingDeadline.deadline,
+                    deadlineLabel: editingDeadline.label.trim(),
+                  });
+                  setProject(updated);
+                  setEditingDeadline(null);
+                }}
+              >
+                Spara
+              </button>
+            </>
+          }
+        >
+          <div className="form">
+            <label className="field">
+              <span className="field-label">Klart senast</span>
+              <input
+                className="input"
+                type="date"
+                value={editingDeadline.deadline}
+                onChange={(e) => setEditingDeadline({ ...editingDeadline, deadline: e.target.value })}
+              />
+            </label>
+            <label className="field">
+              <span className="field-label">Etikett (valfri)</span>
+              <input
+                className="input"
+                value={editingDeadline.label}
+                maxLength={30}
+                placeholder="T.ex. Julklapp 🎁"
+                onChange={(e) => setEditingDeadline({ ...editingDeadline, label: e.target.value })}
+              />
+            </label>
+          </div>
+        </Modal>
+      )}
+
+      {pickingColor && (
+        <Modal title="Garnfärg" onClose={() => setPickingColor(false)}>
+          <YarnColorPicker
+            value={project.color}
+            onChange={async (color) => {
+              const updated = await updateProject(projectId, { color });
+              setProject(updated);
+              setPickingColor(false);
+            }}
+          />
+        </Modal>
       )}
 
       {pickingPattern && (
@@ -345,11 +449,14 @@ function PatternPickerModal({ currentId, onClose, onPick }) {
           {patterns.map((p) => (
             <button
               key={p.id}
-              className={`menu-item ${p.id === currentId ? 'menu-item-active' : ''}`}
+              className={`menu-item menu-item-row ${p.id === currentId ? 'menu-item-active' : ''}`}
               onClick={() => onPick(p.id)}
             >
-              {p.name}
-              <span className="menu-item-meta">{p.pageCount} sidor</span>
+              <PatternThumb pattern={p} className="menu-item-thumb" />
+              <span className="menu-item-text">
+                {p.name}
+                <span className="menu-item-meta">{p.pageCount} sidor</span>
+              </span>
             </button>
           ))}
           {currentId && (

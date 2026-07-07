@@ -2,21 +2,41 @@ import { useEffect, useState } from 'react';
 import { navigate } from './router.jsx';
 import { listProjects, getSettings, listPatterns, createProject } from '../storage/storage.js';
 import Modal from '../ui/Modal.jsx';
+import PatternThumb from '../patterns/PatternThumb.jsx';
+import { YarnColorPicker, yarnColorValue, randomYarnColorId } from '../ui/yarnColors.jsx';
+import YarnBall from '../ui/YarnBall.jsx';
+import { SkeletonCards } from '../ui/Skeleton.jsx';
+import DeadlineBadge from '../ui/DeadlineBadge.jsx';
 
 export default function HomeView() {
   const [projects, setProjects] = useState(null);
   const [settings, setSettings] = useState(null);
+  const [patternById, setPatternById] = useState({});
   const [showNewProject, setShowNewProject] = useState(false);
 
   useEffect(() => {
     listProjects('pågående').then(setProjects);
     getSettings().then(setSettings);
+    listPatterns().then((all) => {
+      const map = {};
+      for (const p of all) map[p.id] = p;
+      setPatternById(map);
+    });
   }, []);
 
   const needsBackup =
     settings &&
     (!settings.lastBackupAt ||
       Date.now() - new Date(settings.lastBackupAt).getTime() > 30 * 24 * 60 * 60 * 1000);
+
+  // Hjältekortet: senast öppnade pågående projektet — ett tryck och du är
+  // tillbaka på rätt varv. Faller tillbaka på det senast uppdaterade.
+  const hero =
+    (projects &&
+      settings &&
+      (projects.find((p) => p.id === settings.lastOpenedProjectId) ?? projects[0])) ||
+    null;
+  const restProjects = hero ? projects.filter((p) => p.id !== hero.id) : projects;
 
   return (
     <div className="view">
@@ -37,19 +57,69 @@ export default function HomeView() {
           </button>
         )}
 
+        {hero && (
+          <button
+            className="hero-card"
+            style={{ '--project-color': yarnColorValue(hero.color) }}
+            onClick={() => navigate(`/projekt/${hero.id}`)}
+          >
+            {hero.patternId && patternById[hero.patternId] && (
+              <PatternThumb pattern={patternById[hero.patternId]} className="hero-thumb" />
+            )}
+            <span className="hero-text">
+              <span className="hero-eyebrow">Fortsätt sticka</span>
+              <span className="hero-name">{hero.name}</span>
+              {hero.counters?.[0] && (
+                <span className="hero-meta">
+                  {hero.counters[0].label} {hero.counters[0].value}
+                </span>
+              )}
+              {hero.deadline && (
+                <span>
+                  <DeadlineBadge deadline={hero.deadline} label={hero.deadlineLabel} />
+                </span>
+              )}
+            </span>
+            <span className="project-card-arrow">›</span>
+          </button>
+        )}
+
+        {projects === null && (
+          <section>
+            <h2 className="section-title">Pågående projekt</h2>
+            <SkeletonCards count={2} />
+          </section>
+        )}
+
+        {projects !== null && (projects.length === 0 || restProjects.length > 0) && (
         <section>
-          <h2 className="section-title">Pågående projekt</h2>
-          {projects === null ? null : projects.length === 0 ? (
+          <h2 className="section-title">{hero ? 'Fler pågående projekt' : 'Pågående projekt'}</h2>
+          {projects.length === 0 ? (
             <div className="empty-state">
+              <YarnBall />
               <p>Inga pågående projekt.</p>
               <p className="empty-state-hint">Tryck på ”Nytt projekt” för att komma igång!</p>
             </div>
           ) : (
             <ul className="card-list">
-              {projects.map((p) => (
+              {restProjects.map((p) => (
                 <li key={p.id}>
-                  <button className="project-card" onClick={() => navigate(`/projekt/${p.id}`)}>
-                    <span className="project-card-name">{p.name}</span>
+                  <button
+                    className="project-card"
+                    style={{ '--project-color': yarnColorValue(p.color) }}
+                    onClick={() => navigate(`/projekt/${p.id}`)}
+                  >
+                    {p.patternId && patternById[p.patternId] && (
+                      <PatternThumb pattern={patternById[p.patternId]} className="project-card-thumb" />
+                    )}
+                    <span className="project-card-name">
+                      {p.name}
+                      {p.deadline && (
+                        <span className="project-card-deadline">
+                          <DeadlineBadge deadline={p.deadline} label={p.deadlineLabel} />
+                        </span>
+                      )}
+                    </span>
                     <span className="project-card-meta">
                       {p.counters?.[0] ? `${p.counters[0].label}: ${p.counters[0].value}` : ''}
                     </span>
@@ -60,6 +130,7 @@ export default function HomeView() {
             </ul>
           )}
         </section>
+        )}
 
         <section className="home-shortcuts">
           <button className="shortcut shortcut-primary" onClick={() => setShowNewProject(true)}>
@@ -78,6 +149,30 @@ export default function HomeView() {
             </span>
             Färdiga projekt
           </button>
+          <button className="shortcut" onClick={() => navigate('/garn')}>
+            <span className="shortcut-icon">
+              <YarnIcon />
+            </span>
+            Garnkorgen
+          </button>
+          <button className="shortcut" onClick={() => navigate('/masktathet')}>
+            <span className="shortcut-icon">
+              <RulerIcon />
+            </span>
+            Masktäthet
+          </button>
+          <button className="shortcut" onClick={() => navigate('/matt')}>
+            <span className="shortcut-icon">
+              <PersonIcon />
+            </span>
+            Måttbanken
+          </button>
+          <button className="shortcut" onClick={() => navigate('/statistik')}>
+            <span className="shortcut-icon">
+              <SparkIcon />
+            </span>
+            Ditt stickår
+          </button>
         </section>
       </main>
 
@@ -89,6 +184,7 @@ export default function HomeView() {
 export function NewProjectModal({ onClose, defaultPatternId = null }) {
   const [name, setName] = useState('');
   const [patternId, setPatternId] = useState(defaultPatternId ?? '');
+  const [color, setColor] = useState(randomYarnColorId);
   const [patterns, setPatterns] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -101,7 +197,7 @@ export function NewProjectModal({ onClose, defaultPatternId = null }) {
     const trimmed = name.trim();
     if (!trimmed || saving) return;
     setSaving(true);
-    const project = await createProject({ name: trimmed, patternId: patternId || null });
+    const project = await createProject({ name: trimmed, patternId: patternId || null, color });
     navigate(`/projekt/${project.id}`);
   }
 
@@ -143,6 +239,10 @@ export function NewProjectModal({ onClose, defaultPatternId = null }) {
             ))}
           </select>
         </label>
+        <div className="field">
+          <span className="field-label">Garnfärg</span>
+          <YarnColorPicker value={color} onChange={setColor} />
+        </div>
       </form>
     </Modal>
   );
@@ -162,6 +262,42 @@ function PdfIcon() {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" strokeLinejoin="round" />
+      <path d="M19 16l.9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function YarnIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M4 9c5-2.5 11-2.5 16 0M4 15c5 2.5 11 2.5 16 0M9 3.6c-2 5-2 11.8 0 16.8M15 3.6c2 5 2 11.8 0 16.8" />
+    </svg>
+  );
+}
+
+function PersonIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 3.5-6.5 8-6.5s8 2.5 8 6.5" />
+    </svg>
+  );
+}
+
+function RulerIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <rect x="2" y="8" width="20" height="8" rx="2" />
+      <path d="M6 8v3M10 8v4M14 8v3M18 8v4" />
     </svg>
   );
 }

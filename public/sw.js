@@ -3,7 +3,7 @@
  * Strategi: cache-first med runtime-cachning av alla same-origin GET-svar.
  * Vid ny version: bumpa CACHE_VERSION så gamla cachar rensas vid activate.
  */
-const CACHE_VERSION = 'stickan-v1';
+const CACHE_VERSION = 'stickan-v2';
 const CORE = ['./', './index.html', './manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

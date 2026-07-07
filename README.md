@@ -90,3 +90,46 @@ hemskärmen”.
   iOS Safari — filväljaren är alltid fallback.
 - Ingen molnsync — dela data mellan enheter via backup-zip tills vidare.
 - Endast PDF som mönsterformat (bilder kan bli v1.1).
+
+## Teknisk skuld (från teknisk översyn, juli 2026)
+
+Åtgärdat i översynen: cache-stämplingen i deployen (kritisk — uppdateringar
+nådde aldrig installerade PWA:er), nätverk-först för navigeringar i service
+workern, dynamisk laddning av pdf.js + code-splitting av vyerna, felgräns
+(ErrorBoundary), fotoradering efter lyckad sparning i FinishForm,
+nollställd vy vid mönsterbyte, importcykeln app/↔patterns bruten,
+`user-scalable=no` borttagen och bandet tangentbordsstyrbart.
+
+Kvar att göra, ungefär i prioritetsordning:
+
+1. **Backup utan minnestopp** — `createBackupZip`/`readBackupZip` håller
+   hela arkivet + alla blobbar i RAM samtidigt (`zipSync`/`unzipSync`).
+   Med ett stort bibliotek riskerar iOS att döda fliken — och backupen är
+   enda skyddsnätet. Byt till fflates strömmande `Zip`/`Unzip`.
+2. **Transaktionella skrivningar + städning av föräldralösa blobbar** —
+   `patch()` är läs-ändra-skriv över två transaktioner och t.ex.
+   `deletePattern` (blob-hårdradering + tombstone) är inte atomär. Lägg
+   fleroperations-mutationer i en IndexedDB-transaktion och kör en
+   städsvep i vilotid som raderar blobbar utan aktiv ägare
+   (nåbarhetslogiken finns redan i `merge.js` — extrahera och återanvänd).
+3. **Lint + format** — ESLint (särskilt `eslint-plugin-react-hooks` för
+   all manuell gest-/pekarkod) och Prettier, som steg i deploy-workflowen.
+4. **Fler tester** — `storage.js` med `fake-indexeddb`, `matchPath` i
+   routern samt en rundtur backup → återläsning → återställning som
+   fångar formatregressioner innan de äter någons data.
+5. **Modal-tillgänglighet** — fokusfälla + återställt fokus vid stängning;
+   piltangentnavigering i mappraden (`role="tablist"`).
+6. **Inställningar i backupen** — bandtjocklek/-opacitet följer inte med
+   vid återställning (bara `lastBackupAt` exporteras). Ta med eller
+   dokumentera medvetet.
+7. **CSP** — appen renderar godtyckliga PDF:er; en
+   `Content-Security-Policy`-meta utan externa script-/connect-källor är
+   billig härdning (`isEvalSupported: false` är redan satt).
+8. **Migrationsmönster i `db.js`** — byt `contains()`-kollarna mot
+   `switch (oldVersion)` innan v3, medan historiken är kort.
+9. **Statistiken "räknade varv"** — summerar räknarnas *nuvarande* värden,
+   så en nollställning raderar historik. Överväg ackumulerande
+   `totalTicks` per räknare.
+10. **TypeScript eller JSDoc-typedefs** — entitetsformerna (`project`,
+    `viewState.band` …) lever bara i konstruktorer och läsande kod; typade
+    kontrakt betalar sig när sync (Nivå 2) byggs.

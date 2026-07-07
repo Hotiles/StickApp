@@ -77,7 +77,7 @@ with pan/pinch/band gestures on the same surface, invite accidental ticks
 (the exact phantom-tap problem the lock B2 was built against), and
 translucency destroys glanceability over a busy chart.
 
-### D. Orientation-adaptive layout: side-dock the panel in landscape — **recommended**
+### D. Orientation-adaptive layout: side-dock the panel in landscape — **recommended** ✅ *(shipped July 2026)*
 
 In landscape, move the counter panel from the bottom edge to the **right
 edge**, as a vertical column. Same components, same behavior, zero new modes
@@ -126,7 +126,8 @@ Edge cases:
 - **4–6 counters** (max is 6): cap the column cards at min-height 56 pt and
   let the column scroll vertically if they overflow — the same graceful
   degradation the bottom row already has horizontally. Default projects have
-  3 counters and never hit this.
+  3 counters and never hit this. *(As built: the lock button is sticky at
+  the column's bottom so locking never requires scrolling.)*
 - **Handedness:** right edge suits the right-handed majority; if feedback
   asks, a "panel på vänster sida" toggle in Inställningar is a one-line
   `flex-direction: row-reverse`. Don't build it speculatively.
@@ -160,8 +161,14 @@ D: counting must remain one tap away by default.
 
 ## 6. Recommendation
 
-Ship **D (landscape side-dock) + §4 (portrait trim)** as one change:
+Ship **D (landscape side-dock) + §4 (general trim)** as one change:
 "the panel respects the orientation". It answers the feedback directly
 (+50 % pattern height in landscape), makes the counters *easier* to hit
 rather than harder, introduces no modes, and touches only CSS and minor
 markup. Defer §5 until real usage says it's needed.
+
+*Outcome, measured in-browser after shipping (390 pt reference phone,
+landscape): PDF viewport 185 → 276 pt (+49 %), side column 148 pt wide,
+three default counters at 84 pt each (vs 72 pt before), six counters
+degrade to 56 pt cards in a scrollable column with the lock always
+visible. Portrait is unchanged apart from the §4 trim.*

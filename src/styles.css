@@ -1197,11 +1197,18 @@ input[type='range'] {
   opacity: 0.7;
 }
 
-/* Räknarlåset (B2): smal hänglåsknapp i panelens kant */
-.counter-lockbtn {
+/* Kantlisten: hänglåset (B2) och läsremsans chevron staplade i panelens kant */
+.counter-rail {
   flex-shrink: 0;
   width: 34px;
-  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.counter-lockbtn {
+  flex: 1;
+  min-height: 0;
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);
@@ -1209,6 +1216,80 @@ input[type='range'] {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.counter-collapsebtn {
+  height: 18px;
+  border-radius: 9px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+ * Läsremsan: panelen hopfälld till en smal remsa med livevärden —
+ * mönstret får skärmen, räknarna är ett tryck bort. Hela remsan är
+ * en knapp som fäller ut panelen igen.
+ */
+.counter-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 4px 12px calc(4px + var(--safe-bottom));
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.counter-strip-item {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+
+.counter-strip-label {
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 12ch;
+}
+
+.counter-strip-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  color: var(--project-color, var(--text));
+}
+
+/* Åtgärdsvarv: värdet lyser som en liten pill även i hopfällt läge */
+.counter-strip-due .counter-strip-value {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 0 6px;
+}
+
+.counter-strip-lock,
+.counter-strip-chevron {
+  display: flex;
+  color: var(--text-dim);
+}
+
+.counter-strip-lock svg {
+  width: 12px;
+  height: 12px;
+}
+
+.counter-strip-chevron {
+  transform: rotate(180deg);
 }
 
 .counter-lockbtn.is-locked {
@@ -1316,11 +1397,57 @@ input[type='range'] {
     min-height: 52px;
   }
 
-  .project-view .counter-lockbtn {
+  /* Kantlisten läggs i sidled nertill i kolumnen, sticky så att lås
+     och hopfällning alltid är nåbara även när kolumnen scrollar */
+  .project-view .counter-rail {
     width: 100%;
-    min-height: 40px;
+    flex-direction: row;
     position: sticky;
     bottom: 0;
+  }
+
+  .project-view .counter-lockbtn {
+    min-height: 36px;
+  }
+
+  .project-view .counter-collapsebtn {
+    height: auto;
+    width: 22px;
+    border-radius: var(--radius);
+  }
+
+  /* Läsremsan blir en smal stående remsa på högerkanten */
+  .project-view > .counter-strip {
+    grid-area: counters;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 12px;
+    width: calc(44px + env(safe-area-inset-right, 0px));
+    padding: 10px calc(4px + env(safe-area-inset-right, 0px)) calc(10px + var(--safe-bottom)) 4px;
+    border-top: none;
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+  }
+
+  /* 44 pt bredd rymmer inga läsbara etiketter — visa bara värdena,
+     i samma ordning som korten i den utfällda panelen */
+  .project-view .counter-strip-item {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .project-view .counter-strip-label {
+    display: none;
+  }
+
+  .project-view .counter-strip-chevron {
+    transform: rotate(90deg);
+    margin-top: auto;
+  }
+
+  .project-view .counter-collapsebtn svg {
+    transform: rotate(-90deg);
   }
 }
 

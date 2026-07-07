@@ -160,14 +160,23 @@ be answered with the §5 reading strip, not more shrinking.
 Explicitly **not** trimmed: the lock rail width, the progress line, the
 28×28 minus button (touch target).
 
-## 5. Optional follow-up (Tier 2, only if feedback persists): reading strip
+## 5. Reading strip ✅ *(shipped July 2026)*
 
-If users still want a "study the chart" state after D ships, add a manual
-collapse — a chevron on the lock rail that folds the panel into a slim strip
-(~28 pt) still showing live values read-only; one tap on the strip restores
-it. Manual only (never auto-hide), persisted per project like
-`countersLocked`. This is a refinement of a calm state, not a substitute for
-D: counting must remain one tap away by default.
+Feedback did persist after D and both trims — with an explicit priority
+call from users: *"the counters just need to be easily reachable; the
+pattern is what counts"*, and tight UI preferred over oversized blind-tap
+targets. That retires the §2.2 constraint as the binding one and makes the
+reading strip the right next move instead of more shrinking.
+
+As built: a chevron on the lock rail folds the panel into a slim strip —
+27 pt tall in portrait (label + value per counter), a 44 pt column of bare
+values in landscape (no room for legible labels; order matches the panel).
+The strip is read-only but live: it shows the same primary number as the
+cards (rhythm counters show their repeat position) and action rows light
+up as a pill. One tap anywhere on the strip restores the panel. Manual
+only (never auto-hide), persisted per project as `countersCollapsed`,
+same lifecycle as `countersLocked`. When collapsed with the lock on, a
+small padlock shows in the strip.
 
 ## 6. Recommendation
 

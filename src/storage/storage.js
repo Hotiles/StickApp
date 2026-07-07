@@ -185,6 +185,7 @@ export async function createProject({ name, patternId = null, color = null }) {
     viewState: DEFAULT_VIEW_STATE(),
     counters: DEFAULT_COUNTERS(),
     countersLocked: false,
+    countersCollapsed: false, // läsremsan: panelen hopfälld till en smal remsa
     yarn: '',
     yarnAmount: '',
     needleSize: '',

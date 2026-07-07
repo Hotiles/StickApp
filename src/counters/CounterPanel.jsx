@@ -3,7 +3,13 @@ import Counter from './Counter.jsx';
 import Modal from '../ui/Modal.jsx';
 import { uuid } from '../storage/storage.js';
 import { tickCounter, followersOf, followCandidates, nextTickMilestone } from './tick.js';
-import { counterSequence, isSimpleRhythm, describeSequence, sequenceEndRow } from './sequence.js';
+import {
+  counterSequence,
+  sequenceStatus,
+  isSimpleRhythm,
+  describeSequence,
+  sequenceEndRow,
+} from './sequence.js';
 
 /*
  * Räknarpanelen: dockad nertill, alltid synlig i mönsterläge.
@@ -13,6 +19,12 @@ import { counterSequence, isSimpleRhythm, describeSequence, sequenceEndRow } fro
  * Hänglåset (B2) gör alla räknare skrivskyddade — mot ficktryck och
  * småbarnstummar, som markeringstejp fast digital. Låset ligger på
  * projektet och överlever att appen dödas.
+ *
+ * Läsremsan: chevronen under hänglåset fäller ihop panelen till en smal
+ * remsa som fortfarande visar värdena — för stunderna man studerar
+ * mönstret och vill ge det hela skärmen. Alltid manuell (aldrig
+ * auto-göm), sparas per projekt som låset, och ett tryck var som helst
+ * på remsan fäller ut panelen igen.
  *
  * Plus/minus går via tickCounter (tick.js) så att länkade räknare (B1)
  * tickar med och livstidsräkningen totalTicks (B3) hålls ärlig.
@@ -37,13 +49,21 @@ function parseSequenceSteps(rows) {
   return steps;
 }
 
-export default function CounterPanel({ counters, locked, onChange, onToggleLock }) {
+export default function CounterPanel({
+  counters,
+  locked,
+  collapsed,
+  onChange,
+  onToggleLock,
+  onToggleCollapsed,
+}) {
   const [menuFor, setMenuFor] = useState(null); // counter-id
   const [renaming, setRenaming] = useState(null); // { id, label }
   const [settingTarget, setSettingTarget] = useState(null); // { id, target }
   const [settingRepeat, setSettingRepeat] = useState(null); // { id, steps: [{every, times}], advanced }
   const [pickingFollow, setPickingFollow] = useState(null); // counter-id
   const [lockNudge, setLockNudge] = useState(false);
+  const [stripShake, setStripShake] = useState(null); // counter-id: tryck i låst remsa
 
   const menuCounter = counters.find((c) => c.id === menuFor);
 
@@ -53,6 +73,28 @@ export default function CounterPanel({ counters, locked, onChange, onToggleLock 
 
   function tick(id, delta) {
     onChange(tickCounter(counters, id, delta));
+  }
+
+  // Tryck på ett värde i remsan: +1 med samma haptik som korten.
+  // Går via tick()/tickCounter så följare (B1) och totalTicks (B3)
+  // hålls ärliga även från kompaktläget.
+  function stripTick(id) {
+    if (locked) {
+      // Ingen vibration — ett ficktryck ska inte kännas som ett varv
+      setStripShake(id);
+      setTimeout(() => setStripShake(null), 350);
+      return;
+    }
+    const counter = counters.find((c) => c.id === id);
+    if (!counter) return;
+    const milestone = nextTickMilestone(counters, id);
+    const next = counter.value + 1;
+    if (navigator.vibrate) {
+      if (milestone.hitTarget) navigator.vibrate([20, 40, 20, 40, 40]);
+      else if (milestone.hitRepeat || (next > 0 && next % 10 === 0)) navigator.vibrate([15, 40, 25]);
+      else navigator.vibrate(15);
+    }
+    tick(id, 1);
   }
 
   // Tryck på en låst räknare: dra blicken till hänglåset i stället
@@ -86,6 +128,54 @@ export default function CounterPanel({ counters, locked, onChange, onToggleLock 
     : null;
   const menuFollowCandidates = menuCounter ? followCandidates(counters, menuCounter.id) : [];
 
+  if (collapsed) {
+    // Kompaktläget: remsan är en miniatyrpanel, inte bara en läsvy —
+    // tryck på ett värde tickar +1 så att "ett tryck = ett varv" gäller
+    // även hopfälld. Varje värde är en synlig pill (tryckytan ska se
+    // tryckbar ut), åtgärdsvarv lyser, och samma primärsiffra som kortet
+    // visas (rytmräknare utan mål: positionen i repetitionen). Backa och
+    // menyer kräver utfälld panel — rättningar är sällsynta, varv inte.
+    return (
+      <div className="counter-strip" role="group" aria-label="Räknare, kompaktläge">
+        {locked && (
+          <span className="counter-strip-lock" aria-hidden="true">
+            <LockIcon open={false} />
+          </span>
+        )}
+        {counters.map((counter) => {
+          const steps = counterSequence(counter);
+          const seq = steps ? sequenceStatus(steps, counter.value) : null;
+          const showPos = seq && isSimpleRhythm(steps) && !counter.target;
+          const shown = showPos ? seq.pos : counter.value;
+          return (
+            <button
+              key={counter.id}
+              className={`counter-strip-btn ${seq?.due ? 'counter-strip-due' : ''} ${
+                stripShake === counter.id ? 'counter-locked-shake' : ''
+              }`}
+              onClick={() => stripTick(counter.id)}
+              aria-label={`${counter.label}: ${counter.value}${
+                locked ? '. Låst — fäll ut panelen och lås upp för att ändra.' : '. Tryck för att öka.'
+              }`}
+            >
+              <span className="counter-strip-label">{counter.label}</span>
+              <span className="counter-strip-value" key={shown}>
+                {shown}
+              </span>
+            </button>
+          );
+        })}
+        <button
+          className="counter-strip-expand"
+          onClick={onToggleCollapsed}
+          aria-label="Fäll ut räknarpanelen"
+        >
+          <ChevronIcon />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="counter-panel">
       {counters.map((counter) => (
@@ -104,19 +194,28 @@ export default function CounterPanel({ counters, locked, onChange, onToggleLock 
         />
       ))}
 
-      <button
-        className={`counter-lockbtn ${locked ? 'is-locked' : ''} ${
-          lockNudge ? 'counter-lockbtn-nudge' : ''
-        }`}
-        onClick={() => {
-          if (navigator.vibrate) navigator.vibrate(locked ? [10, 30, 10] : 10);
-          onToggleLock();
-        }}
-        aria-pressed={locked}
-        aria-label={locked ? 'Lås upp räknarna' : 'Lås räknarna'}
-      >
-        <LockIcon open={!locked} />
-      </button>
+      <div className="counter-rail">
+        <button
+          className={`counter-lockbtn ${locked ? 'is-locked' : ''} ${
+            lockNudge ? 'counter-lockbtn-nudge' : ''
+          }`}
+          onClick={() => {
+            if (navigator.vibrate) navigator.vibrate(locked ? [10, 30, 10] : 10);
+            onToggleLock();
+          }}
+          aria-pressed={locked}
+          aria-label={locked ? 'Lås upp räknarna' : 'Lås räknarna'}
+        >
+          <LockIcon open={!locked} />
+        </button>
+        <button
+          className="counter-collapsebtn"
+          onClick={onToggleCollapsed}
+          aria-label="Fäll ihop räknarna till en remsa"
+        >
+          <ChevronIcon />
+        </button>
+      </div>
 
       {menuCounter && (
         <Modal title={menuCounter.label} onClose={() => setMenuFor(null)}>
@@ -499,6 +598,25 @@ function RepeatEditor({ state, onChange, onSave, onClose }) {
         </form>
       )}
     </Modal>
+  );
+}
+
+/** Chevron: pekar mot kanten panelen fäller ihop sig mot (roteras i CSS). */
+function ChevronIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
   );
 }
 

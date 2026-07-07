@@ -1075,7 +1075,7 @@ input[type='range'] {
 .counter-panel {
   display: flex;
   gap: 6px;
-  padding: 8px 8px calc(8px + var(--safe-bottom));
+  padding: 6px 6px calc(6px + var(--safe-bottom));
   background: var(--bg);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
@@ -1084,7 +1084,7 @@ input[type='range'] {
 .counter {
   flex: 1;
   position: relative;
-  min-height: 60px;
+  min-height: 52px;
   min-width: 0;
   background: var(--surface);
   border-radius: var(--radius);
@@ -1109,7 +1109,7 @@ input[type='range'] {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 5px 4px;
+  padding: 4px;
   border-radius: inherit;
   user-select: none;
   -webkit-user-select: none;
@@ -1176,7 +1176,7 @@ input[type='range'] {
 }
 
 .counter-of {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-dim);
 }
@@ -1200,7 +1200,7 @@ input[type='range'] {
 }
 
 .counter-sub {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-dim);
   line-height: 1.2;
 }
@@ -1280,11 +1280,18 @@ input[type='range'] {
   opacity: 0.7;
 }
 
-/* Räknarlåset (B2): smal hänglåsknapp i panelens kant */
-.counter-lockbtn {
+/* Kantlisten: hänglåset (B2) och läsremsans chevron staplade i panelens kant */
+.counter-rail {
   flex-shrink: 0;
   width: 34px;
-  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.counter-lockbtn {
+  flex: 1;
+  min-height: 0;
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);
@@ -1292,6 +1299,102 @@ input[type='range'] {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.counter-collapsebtn {
+  height: 18px;
+  border-radius: 9px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+ * Kompaktläget: panelen hopfälld till en smal remsa som fortfarande
+ * RÄKNAR — tryck på en pill tickar +1, mönstret får skärmen. Pillarna
+ * har synlig yta (tryckbart ska se tryckbart ut) och chevronen fäller
+ * ut hela panelen för backning, menyer och lås.
+ */
+.counter-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 8px calc(4px + var(--safe-bottom));
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.counter-strip-btn {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.counter-strip-btn:active {
+  background: var(--accent-soft);
+}
+
+.counter-strip-label {
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 12ch;
+}
+
+.counter-strip-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  color: var(--project-color, var(--text));
+  animation: counter-tick 0.16s ease-out;
+}
+
+/* Åtgärdsvarv: hela pillen lyser även i hopfällt läge */
+.counter-strip-due {
+  background: var(--accent-soft);
+  outline: 1.5px solid var(--project-color, var(--accent));
+  outline-offset: -1px;
+}
+
+.counter-strip-lock,
+.counter-strip-expand {
+  display: flex;
+  align-items: center;
+  color: var(--text-dim);
+}
+
+.counter-strip-lock svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Utfällningen: generös tryckyta — enda vägen till backning och meny */
+.counter-strip-expand {
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.counter-strip-expand:active {
+  background: var(--accent-soft);
+}
+
+.counter-strip-expand svg {
+  transform: rotate(180deg);
 }
 
 .counter-lockbtn.is-locked {
@@ -1342,7 +1445,7 @@ input[type='range'] {
 }
 
 .counter-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 650;
   color: var(--text-dim);
   max-width: 100%;
@@ -1352,7 +1455,7 @@ input[type='range'] {
 }
 
 .counter-value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -1388,22 +1491,77 @@ input[type='range'] {
   .project-view > .counter-panel {
     grid-area: counters;
     flex-direction: column;
-    width: calc(148px + env(safe-area-inset-right, 0px));
-    padding: 8px calc(8px + env(safe-area-inset-right, 0px)) calc(8px + var(--safe-bottom)) 8px;
+    width: calc(136px + env(safe-area-inset-right, 0px));
+    padding: 6px calc(6px + env(safe-area-inset-right, 0px)) calc(6px + var(--safe-bottom)) 6px;
     border-top: none;
     border-left: 1px solid var(--border);
     overflow-y: auto;
   }
 
   .project-view .counter {
-    min-height: 56px;
+    min-height: 52px;
+  }
+
+  /* Kantlisten läggs i sidled nertill i kolumnen, sticky så att lås
+     och hopfällning alltid är nåbara även när kolumnen scrollar */
+  .project-view .counter-rail {
+    width: 100%;
+    flex-direction: row;
+    position: sticky;
+    bottom: 0;
   }
 
   .project-view .counter-lockbtn {
+    min-height: 36px;
+  }
+
+  .project-view .counter-collapsebtn {
+    height: auto;
+    width: 22px;
+    border-radius: var(--radius);
+  }
+
+  /* Kompaktremsan blir en smal stående remsa på högerkanten */
+  .project-view > .counter-strip {
+    grid-area: counters;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 8px;
+    width: calc(46px + env(safe-area-inset-right, 0px));
+    padding: 8px calc(4px + env(safe-area-inset-right, 0px)) calc(8px + var(--safe-bottom)) 4px;
+    border-top: none;
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+  }
+
+  /* 46 pt bredd rymmer inga läsbara etiketter — visa bara värdena,
+     i samma ordning som korten i den utfällda panelen. Pillarna blir
+     fullbreda knappar med rejäl höjd. */
+  .project-view .counter-strip-btn {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
     width: 100%;
-    min-height: 40px;
-    position: sticky;
-    bottom: 0;
+    padding: 8px 0;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .project-view .counter-strip-label {
+    display: none;
+  }
+
+  .project-view .counter-strip-expand {
+    margin-top: auto;
+    padding: 8px 4px;
+  }
+
+  .project-view .counter-strip-expand svg {
+    transform: rotate(90deg);
+  }
+
+  .project-view .counter-collapsebtn svg {
+    transform: rotate(-90deg);
   }
 }
 

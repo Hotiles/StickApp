@@ -129,6 +129,14 @@ export default function ProjectView({ projectId }) {
     saveDebounced({ countersLocked });
   }
 
+  function handleToggleCountersCollapsed() {
+    // Läsremsan sparas per projekt som låset — man ska hamna i samma
+    // läge man lämnade, även efter att appen dödats
+    const countersCollapsed = !project.countersCollapsed;
+    setProject((p) => ({ ...p, countersCollapsed }));
+    saveDebounced({ countersCollapsed });
+  }
+
   async function handleRename(name) {
     const updated = await updateProject(projectId, { name });
     setProject(updated);
@@ -228,8 +236,10 @@ export default function ProjectView({ projectId }) {
       <CounterPanel
         counters={project.counters}
         locked={!!project.countersLocked}
+        collapsed={!!project.countersCollapsed}
         onChange={handleCountersChange}
         onToggleLock={handleToggleCountersLock}
+        onToggleCollapsed={handleToggleCountersCollapsed}
       />
 
       {menuOpen && (

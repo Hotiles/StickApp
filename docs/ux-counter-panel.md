@@ -147,17 +147,54 @@ sketched:
 - Net effect: the row is ~16 pt slimmer for default counters (92 → 76 pt),
   ~10 pt slimmer when target/repeat sub-lines are showing.
 
-Explicitly **not** trimmed: the 28 pt value digits (glanceability), the
-lock rail width, the progress line.
+**Round two** *(user feedback after the first trim: still a bit large —
+"the counters should be easily reachable, but the pattern is what
+counts")*: type scaled down one notch (value digits 28 → 24 pt, label
+12 → 11, sub 11 → 10, "/target" 13 → 12), panel padding 8 → 6 pt, card
+min-height 60 → 52 pt, landscape column 148 → 136 pt. Cumulative vs. the
+original: the portrait row is ~28 pt slimmer for default counters
+(92 → 64 pt, −30 %). The 52 pt floor is the stopping point — going below
+touches the 44 pt blind-tap margin, so any further space requests should
+be answered with the §5 reading strip, not more shrinking.
 
-## 5. Optional follow-up (Tier 2, only if feedback persists): reading strip
+Explicitly **not** trimmed: the lock rail width, the progress line, the
+28×28 minus button (touch target).
 
-If users still want a "study the chart" state after D ships, add a manual
-collapse — a chevron on the lock rail that folds the panel into a slim strip
-(~28 pt) still showing live values read-only; one tap on the strip restores
-it. Manual only (never auto-hide), persisted per project like
-`countersLocked`. This is a refinement of a calm state, not a substitute for
-D: counting must remain one tap away by default.
+## 5. Reading strip ✅ *(shipped July 2026)*
+
+Feedback did persist after D and both trims — with an explicit priority
+call from users: *"the counters just need to be easily reachable; the
+pattern is what counts"*, and tight UI preferred over oversized blind-tap
+targets. That retires the §2.2 constraint as the binding one and makes the
+reading strip the right next move instead of more shrinking.
+
+As built: a chevron on the lock rail folds the panel into a slim strip —
+27 pt tall in portrait (label + value per counter), a 46 pt column of bare
+values in landscape (no room for legible labels; order matches the panel).
+The strip shows the same primary number as the cards (rhythm counters show
+their repeat position) and action rows light up. Manual only (never
+auto-hide), persisted per project as `countersCollapsed`, same lifecycle
+as `countersLocked`. When collapsed with the lock on, a small padlock
+shows in the strip.
+
+**Honest post-ship evaluation → compact mode** *(same month)*: the first
+strip was read-only — one tap anywhere expanded the panel. That solved
+the space goal but broke the app's core contract *"one tap = one row"*
+inside the strip: living in it cost expand → tick → collapse, three taps
+per row, exactly the mode-cost §3.A warned about. Users spotted it
+immediately ("can I tap the number without opening?"). The fix reframes
+the strip from *reading strip* to **compact mode**: each value is a
+visible pill button and a tap ticks +1 — through the same
+`tickCounter` path as the cards, so linked followers (B1) and
+`totalTicks` (B3) stay honest, with the same haptic milestones. The
+expand affordance moved from "anywhere" to a dedicated generous chevron
+button. The lock applies in the strip too (dead taps + shake, no
+vibration); corrections (minus) and menus deliberately still require
+expanding — miscounts are rare, rows are not. Known residual risks, by
+design: a tap meant as "expand" can hit a pill (mitigated by visible
+pill boundaries + tick animation + haptic receipt, and minus one
+expand away), and the chevron affordances are small — acceptable under
+the stated "tight UI over big targets" priority.
 
 ## 6. Recommendation
 

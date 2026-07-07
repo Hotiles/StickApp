@@ -67,10 +67,17 @@ npm run build      # produktionsbygge till dist/
 ## Deploy
 
 Push till `main` bygger, kör testerna och publicerar till GitHub Pages
-automatiskt. Workflowen stämplar service workerns `CACHE_VERSION` med
-commit-SHA:n, så användarna får nya versioner utan manuell cache-bump.
+automatiskt. Bygget stämplar service workerns `CACHE_VERSION` med
+commit-SHA:n (se `stampServiceWorkerVersion` i `vite.config.js`), så varje
+deploy blir en ny service worker-version — ingen manuell cache-bump behövs.
 Aktivera Pages i repo-inställningarna: **Settings → Pages → Source: GitHub
 Actions** (en gång).
+
+Uppdateringar når användarna så här: HTML serveras network-first (en vanlig
+omladdning ger alltid senaste versionen), och när en ny service worker
+laddats ner visar appen en banner med en ”Uppdatera”-knapp. Under
+Inställningar → Om finns även ”Sök efter uppdatering” för installerade
+PWA:er som aldrig stängs helt.
 
 Installera på telefonen: öppna sidan i Safari/Chrome → ”Lägg till på
 hemskärmen”.

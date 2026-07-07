@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { useRoute, matchPath } from './router.jsx';
 import { requestPersistence } from '../storage/storage.js';
 import HomeView from './HomeView.jsx';
+import UpdateBanner from '../ui/UpdateBanner.jsx';
 
 // Startvyn laddas direkt; övriga vyer code-splittas så att startbunten
 // hålls liten (särskilt pdf.js ska inte betalas förrän ett mönster öppnas).
@@ -25,9 +26,12 @@ export default function App() {
   }, []);
 
   return (
-    <Suspense fallback={<div className="view loading-view">Laddar …</div>}>
-      <Route path={path} />
-    </Suspense>
+    <>
+      <UpdateBanner />
+      <Suspense fallback={<div className="view loading-view">Laddar …</div>}>
+        <Route path={path} />
+      </Suspense>
+    </>
   );
 }
 

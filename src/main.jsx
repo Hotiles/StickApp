@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './app/App.jsx';
 import ErrorBoundary from './app/ErrorBoundary.jsx';
+import { registerServiceWorker } from './app/appUpdate.js';
 import './styles.css';
 
 createRoot(document.getElementById('root')).render(
@@ -21,9 +22,5 @@ function syncThemeColor() {
 syncThemeColor();
 darkQuery.addEventListener?.('change', syncThemeColor);
 
-// Service worker: bara i produktion (stör utvecklingsläget annars)
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  });
-}
+// Service worker + uppdateringsflöde (banner när ny version finns)
+registerServiceWorker();

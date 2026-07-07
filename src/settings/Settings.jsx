@@ -6,6 +6,7 @@ import {
   requestPersistence,
 } from '../storage/storage.js';
 import { exportBackup, readBackupZip, restoreReplace, restoreMerge } from '../storage/backup.js';
+import { checkForUpdate } from '../app/appUpdate.js';
 import TopBar from '../ui/TopBar.jsx';
 import Modal from '../ui/Modal.jsx';
 import { formatSize } from '../ui/format.js';
@@ -19,6 +20,7 @@ export default function Settings() {
   const [message, setMessage] = useState(null);
   const [restorePreview, setRestorePreview] = useState(null); // { data, blobRecords, summary }
   const [error, setError] = useState(null);
+  const [updateStatus, setUpdateStatus] = useState(null); // 'checking' | 'found' | 'none' | 'error'
 
   useEffect(() => {
     getSettings().then(setSettings);
@@ -77,6 +79,15 @@ export default function Settings() {
       setError('Återställningen misslyckades.');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleCheckUpdate() {
+    setUpdateStatus('checking');
+    try {
+      setUpdateStatus((await checkForUpdate()) ? 'found' : 'none');
+    } catch {
+      setUpdateStatus('error');
     }
   }
 
@@ -162,6 +173,16 @@ export default function Settings() {
         <section>
           <h2 className="section-title">Om</h2>
           <p className="settings-hint">Stickan v1 · funkar helt offline · all data stannar på din enhet.</p>
+          <div className="settings-actions">
+            <button className="btn" onClick={handleCheckUpdate} disabled={updateStatus === 'checking'}>
+              {updateStatus === 'checking' ? 'Söker …' : 'Sök efter uppdatering'}
+            </button>
+          </div>
+          {updateStatus === 'found' && (
+            <p className="settings-message">En ny version hämtas — tryck ”Uppdatera” i rutan som strax dyker upp.</p>
+          )}
+          {updateStatus === 'none' && <p className="settings-hint">Du har redan den senaste versionen.</p>}
+          {updateStatus === 'error' && <p className="form-error">Kunde inte söka efter uppdatering — är du offline?</p>}
         </section>
       </main>
 

@@ -25,16 +25,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      # Bygget stämplar sw.js med GITHUB_SHA (se vite.config.js), så varje
+      # deploy blir en ny service worker-version — ingen manuell cache-bump.
       - run: npm run build
-      # Cache-bump-disciplin: varje deploy får en egen cacheversion,
-      # så gamla service worker-cachar rensas automatiskt hos användarna.
-      # Regexen matchar alla "stickan-v<något>" så att en manuell versionsbump
-      # i sw.js inte tyst bryter stämplingen; grep:en fäller bygget om
-      # stämpeln ändå inte tog.
-      - name: Stämpla service worker-cacheversion
-        run: |
-          sed -i -E "s/stickan-v[0-9a-z]+/stickan-${GITHUB_SHA::10}/" dist/sw.js
-          grep -q "stickan-${GITHUB_SHA::10}" dist/sw.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

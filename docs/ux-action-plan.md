@@ -143,7 +143,7 @@ backups all touched), so it deserves its own design spike before commitment.
 | D3 | **Tap-to-highlight size marker** | Lightweight annotation: tap to drop a small circle/highlight in document coordinates, for marking your size in "56 (60, 64, 68) sts" through a whole pattern. Explicitly *not* free-form drawing — dots and short highlights only, erasable by tapping again. Stored like band positions. | §8, wish 8 |
 | D4 | **Image patterns** | The promised v1.1: import one or more photos as a multi-page "pattern" with the same band, zoom and resume behavior. Reuse the PDF viewer's page abstraction with an image page source. | wish 15 |
 | D5 | **Library search + tags** | Name search across folders (instant filter on the existing list), plus a small fixed tag vocabulary (garment type, yarn weight). Folders stay; search complements them. | §7, wish 14 |
-| D6 | **Band thickness per project, adjusted in place** | Chart row heights differ per pattern, so a global thickness is scoped wrong: the band covers too much on one pattern, too little on the next, and retuning it in Inställningar for every project switch is a loop of indirection. Store a thickness override in the project's `viewState` (per file once D1 lands); the Inställningar value remains the *default for new projects*. Crucially, make the adjustment **direct manipulation in the pattern view** — drag the band's edge (or a small resize handle shown while the band is held) until it matches one chart row — instead of a slider two screens away. Set once per project, remembered forever, exactly like band position already is. | user feedback |
+| D6 ✅ *(shipped July 2026)* | **Band thickness per project, adjusted in place** | Small grip on the band's edge (bottom/right); dragging it resizes while the opposite edge stays anchored — align one edge by moving the band, drag the other to match the chart row. Saved as `viewState.bandThickness` (pt) only once the user actually resizes, so Inställningar remains the default for new projects (with copy explaining the split). Keyboard: arrow keys on the grip, 2 pt per step. | user feedback |
 | D7 | **Page gallery for direct navigation** | Real patterns send you from page 2 to the chart on page 6 and back; step-by-step paging makes that a chore. Tap the page indicator to open a thumbnail grid of all pages and jump directly. Reuse the existing thumbnail renderer (`src/pdf/thumbnail.js`) with lazy, cached page thumbs. Mark the band's page in the grid ("här är du") so the trip *back* to your row is one obvious tap. | user feedback |
 
 **Design notes**
@@ -238,13 +238,14 @@ release passes a recognizable user test.
 - B2 Counter lock ✅
 - B3 `totalTicks` ✅ *(landed with B1/B2 — "räknade varv" now reads it, completing F1)*
 - B5 Total/repeat display fix ✅
-- D6 Band thickness per project (small, self-contained, and a
-  several-times-a-week annoyance for anyone with more than one active
-  project — squarely in the sofa-test spirit)
+- D6 Band thickness per project ✅
 
 Small, sharply-scoped items; roughly the "weekend of work" the review
 estimates, plus migrations. Ship it as one visible release — it directly
 answers the review's headline criticism.
+
+**Release 1 is complete (July 2026).** Time to hand the app back to the
+reviewer and ask for the re-review against her own Tier 1 list (§5).
 
 ### Release 2 — "Real patterns" *(Tier 2)*
 - B4 Shaping sequences

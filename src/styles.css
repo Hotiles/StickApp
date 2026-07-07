@@ -953,6 +953,47 @@ input[type='range'] {
   transform: translateX(-50%);
 }
 
+/* Tjockleksgreppet (D6): pill på bandets nedre/högra kant — dra tills
+   bandet täcker exakt en diagramrad. Motsatta kanten ligger still. */
+.band-resize {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%, 50%);
+  width: 48px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.band-v .band-resize {
+  left: auto;
+  bottom: auto;
+  right: 0;
+  top: 50%;
+  transform: translate(50%, -50%);
+  width: 28px;
+  height: 48px;
+  cursor: ew-resize;
+}
+
+.band-resize-grip {
+  width: 26px;
+  height: 9px;
+  border-radius: 5px;
+  background: rgba(244, 194, 219, 0.95);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(61, 52, 54, 0.3);
+}
+
+.band-v .band-resize-grip {
+  width: 9px;
+  height: 26px;
+}
+
 /* ===== Räknare ===== */
 .counter-panel {
   display: flex;

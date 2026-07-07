@@ -150,6 +150,11 @@ export default function Settings() {
             style={{ background: `rgba(${BAND_COLOR}, ${settings.bandOpacity})`, height: `${settings.bandThickness}px` }}
             aria-hidden="true"
           />
+          <p className="settings-hint">
+            Tjockleken här är standard för nya projekt. I ett projekt passar du in bandet mot
+            mönstrets rader genom att dra i greppet på bandets kant — det minns projektet sedan
+            själv.
+          </p>
         </section>
 
         <section>

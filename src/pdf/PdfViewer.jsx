@@ -15,12 +15,16 @@ const MAX_CANVAS_PIXELS = 12_000_000; // säkerhetsmarginal för iOS-canvasgrän
 const MAX_CANVAS_DIM = 4096;
 const SWIPE_MIN_DX = 64;
 const DEFAULT_BAND_POSITION = 0.25;
+// Tjockleksgreppet får friare spelrum än reglaget i Inställningar (10–60):
+// diagramrader kan vara både pyttesmå och jättelika.
+const MIN_BAND_PT = 6;
+const MAX_BAND_PT = 120;
 
 export default function PdfViewer({
   doc,
   initialViewState,
   bandOpacity = 0.4,
-  bandThickness = 24, // i PDF-punkter
+  bandThickness = 24, // standardtjocklek i PDF-punkter (Inställningar)
   showBandControls = true,
   onStateChange, // (viewState) => void — anroparen sköter debounce/persistens
 }) {
@@ -44,6 +48,13 @@ export default function PdfViewer({
         visible: true,
       }
   );
+  // Tjocklek per projekt (D6): finns en override i viewState gäller den;
+  // annars Inställningars standard — och standarden fortsätter gälla tills
+  // användaren faktiskt justerar i vyn (först då börjar vi spara den).
+  const [bandThicknessPt, setBandThicknessPt] = useState(
+    initialViewState?.bandThickness ?? bandThickness
+  );
+  const bandThicknessOverrideRef = useRef(initialViewState?.bandThickness != null);
   const [renderError, setRenderError] = useState(null);
 
   const pointersRef = useRef(new Map());
@@ -56,13 +67,17 @@ export default function PdfViewer({
   const reportState = useCallback(
     (next = {}) => {
       if (!onStateChange) return;
-      onStateChange({
+      const viewState = {
         page: next.page ?? pageNumRef.current,
         zoom: next.zoom ?? zoomRef.current,
         scrollX: next.scrollX ?? scrollRef.current.x,
         scrollY: next.scrollY ?? scrollRef.current.y,
         band: next.band ?? bandRef.current,
-      });
+      };
+      if (bandThicknessOverrideRef.current) {
+        viewState.bandThickness = next.bandThickness ?? bandThicknessPtRef.current;
+      }
+      onStateChange(viewState);
     },
     [onStateChange]
   );
@@ -72,10 +87,12 @@ export default function PdfViewer({
   const zoomRef = useRef(zoom);
   const scrollRef = useRef(scroll);
   const bandRef = useRef(band);
+  const bandThicknessPtRef = useRef(bandThicknessPt);
   pageNumRef.current = pageNum;
   zoomRef.current = zoom;
   scrollRef.current = scroll;
   bandRef.current = band;
+  bandThicknessPtRef.current = bandThicknessPt;
 
   // ---------- Viewportstorlek ----------
   useEffect(() => {
@@ -377,11 +394,28 @@ export default function PdfViewer({
     });
   }
 
+  // D6: kanten dras tills bandet täcker en diagramrad — spara tjockleken
+  // (i punkter, dokumentkoordinater) som projektets override från och med nu.
+  function handleBandResizeEnd(position, thicknessCss) {
+    const pt =
+      Math.round(clamp(thicknessCss / cssPerPtRef.current, MIN_BAND_PT, MAX_BAND_PT) * 10) / 10;
+    bandThicknessOverrideRef.current = true;
+    setBandThicknessPt(pt);
+    const next = {
+      ...bandRef.current,
+      positionByPage: { ...bandRef.current.positionByPage, [pageNumRef.current]: position },
+    };
+    setBand(next);
+    reportState({ band: next, bandThickness: pt });
+  }
+
   // ---------- Render ----------
   const numPages = doc?.numPages ?? 0;
   const pageCssW = baseCss ? baseCss.w * zoom : 0;
   const pageCssH = baseCss ? baseCss.h * zoom : 0;
   const cssPerPt = pageInfo && pageCssW ? pageCssW / pageInfo.widthPt : 1;
+  const cssPerPtRef = useRef(cssPerPt);
+  cssPerPtRef.current = cssPerPt;
 
   return (
     <div className="pdf-container">
@@ -411,11 +445,15 @@ export default function PdfViewer({
               <BandOverlay
                 orientation={band.orientation}
                 position={bandPosition}
-                thicknessCss={bandThickness * cssPerPt}
+                thicknessCss={bandThicknessPt * cssPerPt}
+                thicknessPt={bandThicknessPt}
+                minThicknessCss={MIN_BAND_PT * cssPerPt}
+                maxThicknessCss={MAX_BAND_PT * cssPerPt}
                 opacity={bandOpacity}
                 pageCssWidth={pageCssW}
                 pageCssHeight={pageCssH}
                 onDragEnd={handleBandDragEnd}
+                onResizeEnd={handleBandResizeEnd}
               />
             )}
           </div>

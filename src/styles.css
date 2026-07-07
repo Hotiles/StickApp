@@ -991,8 +991,8 @@ input[type='range'] {
 /* ===== Räknare ===== */
 .counter-panel {
   display: flex;
-  gap: 8px;
-  padding: 10px 10px calc(10px + var(--safe-bottom));
+  gap: 6px;
+  padding: 8px 8px calc(8px + var(--safe-bottom));
   background: var(--bg);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
@@ -1001,7 +1001,7 @@ input[type='range'] {
 .counter {
   flex: 1;
   position: relative;
-  min-height: 72px;
+  min-height: 60px;
   min-width: 0;
   background: var(--surface);
   border-radius: var(--radius);
@@ -1026,7 +1026,7 @@ input[type='range'] {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 8px 4px;
+  padding: 5px 4px;
   border-radius: inherit;
   user-select: none;
   -webkit-user-select: none;
@@ -1201,7 +1201,7 @@ input[type='range'] {
 .counter-lockbtn {
   flex-shrink: 0;
   width: 34px;
-  min-height: 72px;
+  min-height: 60px;
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);

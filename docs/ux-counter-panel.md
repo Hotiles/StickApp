@@ -133,17 +133,21 @@ Edge cases:
 - **Tablets/very wide screens:** the same side-dock layout is strictly
   better there too; no special casing needed.
 
-## 4. Secondary trim in portrait (small, ships with D)
+## 4. General trim ✅ *(shipped July 2026)*
 
-Portrait is not the complaint, but two free wins while in there:
+Portrait was not the original complaint, but follow-up user feedback asked
+for a general slimming of the counter row, so this went further than first
+sketched:
 
-- Panel padding 10 → 8 pt and card gap 8 → 6 pt (saves ~6 pt, no perceptible
-  density change).
-- The `counter-sub` line only renders when it has content — already true —
-  so nothing else to cut without losing glanceability.
+- Panel padding 10 → 8 pt, card gap 8 → 6 pt, card inner padding 8 → 5 pt.
+- Card min-height 72 → 60 pt (lock rail follows). Still comfortably above
+  the 44 pt blind-tap floor, and cards with a sub-line grow from content
+  (~73 pt) rather than being clipped — verified in-browser.
+- Net effect: the row is ~16 pt slimmer for default counters (92 → 76 pt),
+  ~10 pt slimmer when target/repeat sub-lines are showing.
 
-Explicitly **not** trimming: the 72 pt card minimum, the lock rail, the
-progress line.
+Explicitly **not** trimmed: the 28 pt value digits (glanceability), the
+lock rail width, the progress line.
 
 ## 5. Optional follow-up (Tier 2, only if feedback persists): reading strip
 

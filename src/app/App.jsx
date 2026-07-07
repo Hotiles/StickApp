@@ -1,19 +1,22 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useRoute, matchPath } from './router.jsx';
 import { requestPersistence } from '../storage/storage.js';
 import HomeView from './HomeView.jsx';
-import PatternLibrary from '../patterns/PatternLibrary.jsx';
-import PatternView from '../patterns/PatternView.jsx';
-import SharedImport from '../patterns/SharedImport.jsx';
-import ProjectView from '../projects/ProjectView.jsx';
-import FinishedGallery from '../projects/FinishedGallery.jsx';
-import ProjectDetails from '../projects/ProjectDetails.jsx';
-import Settings from '../settings/Settings.jsx';
-import GaugeCalculator from '../tools/GaugeCalculator.jsx';
-import Measurements from '../tools/Measurements.jsx';
-import YarnStash from '../tools/YarnStash.jsx';
-import Stats from '../tools/Stats.jsx';
 import UpdateBanner from '../ui/UpdateBanner.jsx';
+
+// Startvyn laddas direkt; övriga vyer code-splittas så att startbunten
+// hålls liten (särskilt pdf.js ska inte betalas förrän ett mönster öppnas).
+const PatternLibrary = lazy(() => import('../patterns/PatternLibrary.jsx'));
+const PatternView = lazy(() => import('../patterns/PatternView.jsx'));
+const SharedImport = lazy(() => import('../patterns/SharedImport.jsx'));
+const ProjectView = lazy(() => import('../projects/ProjectView.jsx'));
+const FinishedGallery = lazy(() => import('../projects/FinishedGallery.jsx'));
+const ProjectDetails = lazy(() => import('../projects/ProjectDetails.jsx'));
+const Settings = lazy(() => import('../settings/Settings.jsx'));
+const GaugeCalculator = lazy(() => import('../tools/GaugeCalculator.jsx'));
+const Measurements = lazy(() => import('../tools/Measurements.jsx'));
+const YarnStash = lazy(() => import('../tools/YarnStash.jsx'));
+const Stats = lazy(() => import('../tools/Stats.jsx'));
 
 export default function App() {
   const path = useRoute();
@@ -25,12 +28,14 @@ export default function App() {
   return (
     <>
       <UpdateBanner />
-      {resolveView(path)}
+      <Suspense fallback={<div className="view loading-view">Laddar …</div>}>
+        <Route path={path} />
+      </Suspense>
     </>
   );
 }
 
-function resolveView(path) {
+function Route({ path }) {
   let params;
   if (path === '/') return <HomeView />;
   if (path === '/monster') return <PatternLibrary />;

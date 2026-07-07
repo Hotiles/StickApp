@@ -60,15 +60,16 @@ export default function FinishForm({ project, onClose, onSaved, editOnly = false
     if (busy) return;
     setBusy(true);
     try {
-      // Foton som fanns innan men togs bort i formuläret raderas nu
-      for (const oldId of project.photoBlobIds || []) {
-        if (!photoIds.includes(oldId)) await deleteBlobHard(oldId);
-      }
       const updated = await updateProject(project.id, {
         ...form,
         photoBlobIds: photoIds,
         ...(editOnly ? {} : { status: 'färdigt' }),
       });
+      // Foton som togs bort i formuläret raderas först när uppdateringen är
+      // sparad — misslyckas den ska projektet inte peka på raderade blobbar.
+      for (const oldId of project.photoBlobIds || []) {
+        if (!photoIds.includes(oldId)) await deleteBlobHard(oldId);
+      }
       onSaved(updated);
     } catch {
       setError('Något gick fel när projektet skulle sparas.');

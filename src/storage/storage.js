@@ -156,7 +156,13 @@ export const DEFAULT_VIEW_STATE = () => ({
   zoom: 1,
   scrollX: 0,
   scrollY: 0,
-  band: { orientation: 'horisontell', positionByPage: {}, positionByPageV: {}, visible: true },
+  band: {
+    orientation: 'horisontell',
+    positionByPage: {},
+    positionByPageV: {},
+    visible: true,
+    lastMovedPage: null,
+  },
 });
 
 export async function listProjects(status) {

@@ -64,7 +64,13 @@ export default function PatternView({ patternId }) {
               zoom: 1,
               scrollX: 0,
               scrollY: 0,
-              band: { orientation: 'horisontell', positionByPage: {}, positionByPageV: {}, visible: false },
+              band: {
+                orientation: 'horisontell',
+                positionByPage: {},
+                positionByPageV: {},
+                visible: false,
+                lastMovedPage: null,
+              },
             }}
             bandOpacity={settings.bandOpacity}
             bandThickness={settings.bandThickness}

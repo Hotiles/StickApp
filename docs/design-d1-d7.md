@@ -4,6 +4,16 @@
 Release 2 items D1 and D7 from `docs/ux-action-plan.md`, which calls for
 designing them as **one navigation model**.*
 
+> **Status (July 2026):** D1 is **paused** — the user wants to validate the
+> actual need with real users before building the multi-file model. D7
+> **shipped standalone** against the single-file model, with one deliberate
+> deviation from §4: the gallery lives inside `PdfViewer` (which owns the
+> one document) instead of the parent view. Nothing else changed, and
+> nothing needs rework when D1 lands — the parent-owned, multi-section
+> gallery described below is the lift-out path. `band.lastMovedPage`
+> shipped exactly as §5 describes (no schema migration; it lives inside
+> `viewState.band` and `normalizeBand` backfills null).
+
 ---
 
 ## 1. The model: one map, two zoom levels

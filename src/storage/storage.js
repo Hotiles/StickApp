@@ -201,6 +201,59 @@ export async function deleteProject(id) {
   return softDelete(STORES.projects, id);
 }
 
+// ---------- Måttbanken ----------
+
+export async function listPersons() {
+  const persons = await getAllActive(STORES.persons);
+  return persons.sort((a, b) => a.name.localeCompare(b.name, 'sv'));
+}
+
+export async function createPerson(name) {
+  const db = await getDb();
+  const person = newEntity({ name: name.trim(), rows: [] }); // rows: [{ id, label, value }]
+  await db.put(STORES.persons, person);
+  return person;
+}
+
+export async function updatePerson(id, changes) {
+  return patch(STORES.persons, id, changes);
+}
+
+export async function deletePerson(id) {
+  return softDelete(STORES.persons, id);
+}
+
+// ---------- Garnkorgen ----------
+
+export async function listYarns() {
+  const yarns = await getAllActive(STORES.yarns);
+  return yarns.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+}
+
+export async function createYarn(fields) {
+  const db = await getDb();
+  const yarn = newEntity({
+    name: '',
+    colorName: '',
+    amount: '',
+    note: '',
+    photoBlobId: null,
+    ...fields,
+  });
+  await db.put(STORES.yarns, yarn);
+  return yarn;
+}
+
+export async function updateYarn(id, changes) {
+  return patch(STORES.yarns, id, changes);
+}
+
+export async function deleteYarn(id) {
+  const yarn = await getActive(STORES.yarns, id);
+  if (yarn?.photoBlobId) await deleteBlobHard(yarn.photoBlobId);
+  return softDelete(STORES.yarns, id);
+}
+
 // ---------- Inställningar ----------
 
 const SETTINGS_DEFAULTS = {
@@ -232,45 +285,41 @@ export async function updateSettings(changes) {
 
 export async function dumpAll() {
   const db = await getDb();
-  const [folders, patterns, projects, settings] = await Promise.all([
+  const [folders, patterns, projects, persons, yarns, settings] = await Promise.all([
     db.getAll(STORES.folders),
     db.getAll(STORES.patterns),
     db.getAll(STORES.projects),
+    db.getAll(STORES.persons),
+    db.getAll(STORES.yarns),
     getSettings(),
   ]);
   const blobRecords = await db.getAll(STORES.blobs);
-  return { folders, patterns, projects, settings, blobRecords };
+  return { folders, patterns, projects, persons, yarns, settings, blobRecords };
 }
 
-export async function replaceAll({ folders, patterns, projects, blobRecords }) {
-  const db = await getDb();
-  const tx = db.transaction(
-    [STORES.folders, STORES.patterns, STORES.projects, STORES.blobs],
-    'readwrite'
-  );
-  await Promise.all([
-    tx.objectStore(STORES.folders).clear(),
-    tx.objectStore(STORES.patterns).clear(),
-    tx.objectStore(STORES.projects).clear(),
-    tx.objectStore(STORES.blobs).clear(),
-  ]);
+const DATA_STORES = [STORES.folders, STORES.patterns, STORES.projects, STORES.persons, STORES.yarns, STORES.blobs];
+
+function writeDump(tx, { folders, patterns, projects, persons = [], yarns = [], blobRecords }) {
   for (const f of folders) tx.objectStore(STORES.folders).put(f);
   for (const p of patterns) tx.objectStore(STORES.patterns).put(p);
   for (const p of projects) tx.objectStore(STORES.projects).put(p);
+  for (const p of persons) tx.objectStore(STORES.persons).put(p);
+  for (const y of yarns) tx.objectStore(STORES.yarns).put(y);
   for (const b of blobRecords) tx.objectStore(STORES.blobs).put(b);
+}
+
+export async function replaceAll(dump) {
+  const db = await getDb();
+  const tx = db.transaction(DATA_STORES, 'readwrite');
+  await Promise.all(DATA_STORES.map((name) => tx.objectStore(name).clear()));
+  writeDump(tx, dump);
   await tx.done;
 }
 
-export async function writeMerged({ folders, patterns, projects, blobRecords }) {
+export async function writeMerged(dump) {
   const db = await getDb();
-  const tx = db.transaction(
-    [STORES.folders, STORES.patterns, STORES.projects, STORES.blobs],
-    'readwrite'
-  );
-  for (const f of folders) tx.objectStore(STORES.folders).put(f);
-  for (const p of patterns) tx.objectStore(STORES.patterns).put(p);
-  for (const p of projects) tx.objectStore(STORES.projects).put(p);
-  for (const b of blobRecords) tx.objectStore(STORES.blobs).put(b);
+  const tx = db.transaction(DATA_STORES, 'readwrite');
+  writeDump(tx, dump);
   await tx.done;
 }
 

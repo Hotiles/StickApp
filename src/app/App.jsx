@@ -10,6 +10,7 @@ import FinishedGallery from '../projects/FinishedGallery.jsx';
 import ProjectDetails from '../projects/ProjectDetails.jsx';
 import Settings from '../settings/Settings.jsx';
 import GaugeCalculator from '../tools/GaugeCalculator.jsx';
+import Measurements from '../tools/Measurements.jsx';
 
 export default function App() {
   const path = useRoute();
@@ -27,6 +28,7 @@ export default function App() {
   if ((params = matchPath('/fardiga/:id', path))) return <ProjectDetails projectId={params.id} />;
   if (path === '/installningar') return <Settings />;
   if (path === '/masktathet') return <GaugeCalculator />;
+  if (path === '/matt') return <Measurements />;
   if (path === '/dela') return <SharedImport />;
 
   return <HomeView />;

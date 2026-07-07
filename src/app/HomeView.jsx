@@ -155,6 +155,12 @@ export default function HomeView() {
             </span>
             Masktäthet
           </button>
+          <button className="shortcut" onClick={() => navigate('/matt')}>
+            <span className="shortcut-icon">
+              <PersonIcon />
+            </span>
+            Måttbanken
+          </button>
         </section>
       </main>
 
@@ -244,6 +250,15 @@ function PdfIcon() {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
+
+function PersonIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 3.5-6.5 8-6.5s8 2.5 8 6.5" />
     </svg>
   );
 }

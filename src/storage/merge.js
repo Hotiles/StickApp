@@ -25,13 +25,20 @@ export function mergeDump(local, incoming) {
   const folders = mergeEntities(local.folders, incoming.folders);
   const patterns = mergeEntities(local.patterns, incoming.patterns);
   const projects = mergeEntities(local.projects, incoming.projects);
+  const persons = mergeEntities(local.persons || [], incoming.persons || []);
+  const yarns = mergeEntities(local.yarns || [], incoming.yarns || []);
 
   const referenced = new Set();
   for (const p of patterns) {
-    if (!p.deletedAt && p.fileBlobId) referenced.add(p.fileBlobId);
+    if (p.deletedAt) continue;
+    if (p.fileBlobId) referenced.add(p.fileBlobId);
+    if (p.thumbBlobId) referenced.add(p.thumbBlobId);
   }
   for (const p of projects) {
     if (!p.deletedAt) for (const id of p.photoBlobIds || []) referenced.add(id);
+  }
+  for (const y of yarns) {
+    if (!y.deletedAt && y.photoBlobId) referenced.add(y.photoBlobId);
   }
 
   const localBlobIds = new Set(local.blobRecords.map((b) => b.id));
@@ -40,5 +47,5 @@ export function mergeDump(local, incoming) {
     ...incoming.blobRecords.filter((b) => referenced.has(b.id) && !localBlobIds.has(b.id)),
   ];
 
-  return { folders, patterns, projects, blobRecords };
+  return { folders, patterns, projects, persons, yarns, blobRecords };
 }

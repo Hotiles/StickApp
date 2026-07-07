@@ -539,6 +539,56 @@ input[type='range'] {
   color: var(--accent-strong);
 }
 
+/* ===== Måttbanken ===== */
+.person-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  text-align: left;
+}
+
+.person-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.person-rows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.person-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.person-row dt {
+  color: var(--text-dim);
+}
+
+.person-row dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.measure-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 44px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
 /* ===== Tomma tillstånd ===== */
 .empty-state {
   text-align: center;

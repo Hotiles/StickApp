@@ -5,7 +5,7 @@ import { openDB } from 'idb';
  * inga direkta anrop hit från komponenter.
  */
 export const DB_NAME = 'stickan';
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export const STORES = {
   folders: 'folders',
@@ -13,6 +13,8 @@ export const STORES = {
   projects: 'projects',
   blobs: 'blobs',
   settings: 'settings',
+  persons: 'persons', // måttbanken: personer med mått
+  yarns: 'yarns', // garnkorgen: garn man har hemma
 };
 
 let dbPromise = null;
@@ -37,6 +39,13 @@ export function getDb() {
         }
         if (!db.objectStoreNames.contains(STORES.settings)) {
           db.createObjectStore(STORES.settings, { keyPath: 'key' });
+        }
+        // v2: måttbank + garnkorg
+        if (!db.objectStoreNames.contains(STORES.persons)) {
+          db.createObjectStore(STORES.persons, { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains(STORES.yarns)) {
+          db.createObjectStore(STORES.yarns, { keyPath: 'id' });
         }
       },
     });

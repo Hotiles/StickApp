@@ -149,6 +149,12 @@ export default function HomeView() {
             </span>
             Färdiga projekt
           </button>
+          <button className="shortcut" onClick={() => navigate('/garn')}>
+            <span className="shortcut-icon">
+              <YarnIcon />
+            </span>
+            Garnkorgen
+          </button>
           <button className="shortcut" onClick={() => navigate('/masktathet')}>
             <span className="shortcut-icon">
               <RulerIcon />
@@ -250,6 +256,15 @@ function PdfIcon() {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
+    </svg>
+  );
+}
+
+function YarnIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M4 9c5-2.5 11-2.5 16 0M4 15c5 2.5 11 2.5 16 0M9 3.6c-2 5-2 11.8 0 16.8M15 3.6c2 5 2 11.8 0 16.8" />
     </svg>
   );
 }

@@ -11,6 +11,7 @@ import ProjectDetails from '../projects/ProjectDetails.jsx';
 import Settings from '../settings/Settings.jsx';
 import GaugeCalculator from '../tools/GaugeCalculator.jsx';
 import Measurements from '../tools/Measurements.jsx';
+import YarnStash from '../tools/YarnStash.jsx';
 
 export default function App() {
   const path = useRoute();
@@ -29,6 +30,7 @@ export default function App() {
   if (path === '/installningar') return <Settings />;
   if (path === '/masktathet') return <GaugeCalculator />;
   if (path === '/matt') return <Measurements />;
+  if (path === '/garn') return <YarnStash />;
   if (path === '/dela') return <SharedImport />;
 
   return <HomeView />;

@@ -1241,6 +1241,13 @@ input[type='range'] {
   font-size: 40px;
 }
 
+.yarn-card-meta {
+  padding: 0 12px 10px;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: left;
+}
+
 .gallery-name {
   padding: 10px 12px;
   font-family: var(--font-display);

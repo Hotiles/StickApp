@@ -13,6 +13,7 @@ import GaugeCalculator from '../tools/GaugeCalculator.jsx';
 import Measurements from '../tools/Measurements.jsx';
 import YarnStash from '../tools/YarnStash.jsx';
 import Stats from '../tools/Stats.jsx';
+import UpdateBanner from '../ui/UpdateBanner.jsx';
 
 export default function App() {
   const path = useRoute();
@@ -21,6 +22,15 @@ export default function App() {
     requestPersistence();
   }, []);
 
+  return (
+    <>
+      <UpdateBanner />
+      {resolveView(path)}
+    </>
+  );
+}
+
+function resolveView(path) {
   let params;
   if (path === '/') return <HomeView />;
   if (path === '/monster') return <PatternLibrary />;

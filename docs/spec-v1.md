@@ -59,8 +59,9 @@ viewState: {
   zoom: number
   scrollX: number, scrollY: number
   band: {
-    orientation: 'horisontell' | 'vertikal'
-    positionByPage: { [page: number]: number }  // position per sida
+    orientation: 'horisontell' | 'vertikal' | 'båda'   // 'båda' = två band i kors
+    positionByPage: { [page: number]: number }   // horisontella bandets position per sida
+    positionByPageV: { [page: number]: number }  // vertikala bandets position per sida
     visible: boolean
   }
 }
@@ -105,7 +106,7 @@ Två lägen i samma vy:
 
 **Mönsterläge (huvudytan):**
 - pdf.js-canvas med pinch-zoom och panorering.
-- **Bandet:** halvtransparent pastellrosa överstrykning (`rgba(244, 194, 219, 0.4)`, justerbar opacitet i inställningar), helt rak, dras med fingret. Knapp för att växla horisontell/vertikal. Position sparas per sida. Kan döljas.
+- **Bandet:** halvtransparent pastellrosa överstrykning (`rgba(244, 194, 219, 0.4)`, justerbar opacitet i inställningar), helt rak, dras med fingret. Knapp som växlar riktning: horisontell → vertikal → båda (ett horisontellt och ett vertikalt band samtidigt, dras oberoende av varandra). Position sparas per sida och riktning. Kan döljas.
 - Sidbläddring med tydliga knappar + svep.
 - Allt state (sida, zoom, scroll, band) sparas debounce:at (~500 ms) till `viewState` → återuppta funkar alltid, även efter att appen dödats.
 

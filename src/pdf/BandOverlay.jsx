@@ -4,6 +4,8 @@ import { useRef, useState } from 'react';
  * Bandet: halvtransparent pastellrosa markering som dras med fingret.
  * Positionen lagras som andel (0–1) av sidans höjd/bredd i DOKUMENT-
  * koordinater, så att bandet sitter kvar på rätt rad vid zoom (§7.2).
+ * Komponenten ritar ett band; i riktningen 'båda' monterar PdfViewer
+ * två stycken (ett horisontellt + ett vertikalt) ovanpå varandra.
  *
  * Tjockleken justeras i inpassningsläget (D6) via verktygsraden — inte
  * här. I det läget (fitting) får bandet skarpare kantlinjer så att man
@@ -108,7 +110,7 @@ export default function BandOverlay({
       onKeyDown={handleKeyDown}
       tabIndex={0}
       role="slider"
-      aria-label="Markeringsband"
+      aria-label={horizontal ? 'Horisontellt markeringsband' : 'Vertikalt markeringsband'}
       aria-valuenow={Math.round(pos * 100)}
       aria-valuemin={0}
       aria-valuemax={100}

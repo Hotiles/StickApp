@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BandOverlay from './BandOverlay.jsx';
 import { stepBandFit, BAND_STEP_PT } from './bandFit.js';
+import { cycleOrientation, normalizeBand } from './bandState.js';
 
 /*
  * Mönstervisaren: pdf.js-canvas med pinch-zoom, panorering, sidbläddring
@@ -37,14 +38,9 @@ export default function PdfViewer({
     y: initialViewState?.scrollY ?? 0,
   });
   const [settledZoom, setSettledZoom] = useState(initialViewState?.zoom ?? 1);
-  const [band, setBand] = useState(
-    () =>
-      initialViewState?.band ?? {
-        orientation: 'horisontell',
-        positionByPage: {},
-        visible: true,
-      }
-  );
+  // Riktningen kan vara 'horisontell', 'vertikal' eller 'båda' (två band
+  // i kors). Äldre sparade lägen lyfts till dagens form (bandState.js).
+  const [band, setBand] = useState(() => normalizeBand(initialViewState?.band));
   // Tjocklek per projekt (D6): finns en override i viewState gäller den;
   // annars Inställningars standard — och standarden fortsätter gälla tills
   // användaren faktiskt justerar i vyn (först då börjar vi spara den).
@@ -382,7 +378,10 @@ export default function PdfViewer({
   }
 
   // ---------- Bandet ----------
-  const bandPosition = band.positionByPage[pageNum] ?? DEFAULT_BAND_POSITION;
+  const showBandH = band.visible && band.orientation !== 'vertikal';
+  const showBandV = band.visible && band.orientation !== 'horisontell';
+  const bandPositionH = band.positionByPage[pageNum] ?? DEFAULT_BAND_POSITION;
+  const bandPositionV = band.positionByPageV[pageNum] ?? DEFAULT_BAND_POSITION;
 
   function updateBand(changes) {
     const next = { ...bandRef.current, ...changes };
@@ -390,33 +389,40 @@ export default function PdfViewer({
     reportState({ band: next });
   }
 
-  function handleBandDragEnd(position) {
-    updateBand({
-      positionByPage: { ...bandRef.current.positionByPage, [pageNumRef.current]: position },
-    });
+  function handleBandDragEnd(orientation, position) {
+    const key = orientation === 'horisontell' ? 'positionByPage' : 'positionByPageV';
+    updateBand({ [key]: { ...bandRef.current[key], [pageNumRef.current]: position } });
   }
 
   // D6: −/+ i inpassningsläget stegar tjockleken kantförankrat (bandFit.js)
   // och sparar den (i punkter, dokumentkoordinater) som projektets override.
+  // Vid 'båda' stegas tjockleken en gång men positionerna räknas om var
+  // för sig så att bägge banden behåller sin förankrade kant.
   function stepBandThickness(deltaPt) {
     if (!pageInfo) return;
-    const horizontal = bandRef.current.orientation === 'horisontell';
-    const next = stepBandFit({
-      position: bandRef.current.positionByPage[pageNumRef.current] ?? DEFAULT_BAND_POSITION,
-      thicknessPt: bandThicknessPtRef.current,
-      deltaPt,
-      spanPt: horizontal ? pageInfo.heightPt : pageInfo.widthPt,
-    });
-    if (!next) return;
+    const current = bandRef.current;
+    const page = pageNumRef.current;
+    const parts = current.orientation === 'båda' ? ['horisontell', 'vertikal'] : [current.orientation];
+    let thicknessPt = null;
+    const nextBand = { ...current };
+    for (const orientation of parts) {
+      const horizontal = orientation === 'horisontell';
+      const key = horizontal ? 'positionByPage' : 'positionByPageV';
+      const next = stepBandFit({
+        position: current[key][page] ?? DEFAULT_BAND_POSITION,
+        thicknessPt: bandThicknessPtRef.current,
+        deltaPt,
+        spanPt: horizontal ? pageInfo.heightPt : pageInfo.widthPt,
+      });
+      if (!next) return;
+      thicknessPt = next.thicknessPt;
+      nextBand[key] = { ...current[key], [page]: next.position };
+    }
     if (navigator.vibrate) navigator.vibrate(8);
     bandThicknessOverrideRef.current = true;
-    setBandThicknessPt(next.thicknessPt);
-    const nextBand = {
-      ...bandRef.current,
-      positionByPage: { ...bandRef.current.positionByPage, [pageNumRef.current]: next.position },
-    };
+    setBandThicknessPt(thicknessPt);
     setBand(nextBand);
-    reportState({ band: nextBand, bandThickness: next.thicknessPt });
+    reportState({ band: nextBand, bandThickness: thicknessPt });
   }
 
   // ---------- Render ----------
@@ -449,16 +455,28 @@ export default function PdfViewer({
             }}
           >
             <canvas ref={canvasRef} className="pdf-canvas" />
-            {band.visible && (
+            {showBandH && (
               <BandOverlay
-                orientation={band.orientation}
-                position={bandPosition}
+                orientation="horisontell"
+                position={bandPositionH}
                 thicknessCss={bandThicknessPt * cssPerPt}
                 opacity={bandOpacity}
                 pageCssWidth={pageCssW}
                 pageCssHeight={pageCssH}
                 fitting={fittingBand}
-                onDragEnd={handleBandDragEnd}
+                onDragEnd={(pos) => handleBandDragEnd('horisontell', pos)}
+              />
+            )}
+            {showBandV && (
+              <BandOverlay
+                orientation="vertikal"
+                position={bandPositionV}
+                thicknessCss={bandThicknessPt * cssPerPt}
+                opacity={bandOpacity}
+                pageCssWidth={pageCssW}
+                pageCssHeight={pageCssH}
+                fitting={fittingBand}
+                onDragEnd={(pos) => handleBandDragEnd('vertikal', pos)}
               />
             )}
           </div>
@@ -526,15 +544,17 @@ export default function PdfViewer({
                   <>
                     <button
                       className="btn-icon"
-                      onClick={() =>
-                        updateBand({
-                          orientation: band.orientation === 'horisontell' ? 'vertikal' : 'horisontell',
-                        })
-                      }
+                      onClick={() => updateBand({ orientation: cycleOrientation(band.orientation) })}
                       aria-label="Växla bandets riktning"
-                      title="Växla bandets riktning"
+                      title="Bandets riktning: horisontell, vertikal eller båda"
                     >
-                      {band.orientation === 'horisontell' ? '↕' : '↔'}
+                      {band.orientation === 'horisontell' ? (
+                        '↕'
+                      ) : band.orientation === 'vertikal' ? (
+                        '↔'
+                      ) : (
+                        <BandBothIcon />
+                      )}
                     </button>
                     <button
                       className="btn-icon"
@@ -559,6 +579,21 @@ function BandIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
       <rect x="2" y="8" width="16" height="5" rx="2" fill="rgba(244,194,219,0.9)" stroke="currentColor" strokeWidth="1" />
+    </svg>
+  );
+}
+
+/** Fyrvägspil: horisontellt och vertikalt band samtidigt. */
+function BandBothIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M10 2.5v15M7.9 4.6 10 2.5l2.1 2.1M7.9 15.4 10 17.5l2.1-2.1M2.5 10h15M4.6 7.9 2.5 10l2.1 2.1M15.4 7.9 17.5 10l-2.1 2.1"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

@@ -1137,6 +1137,58 @@ input[type='range'] {
   animation: counter-pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
 
+/* Formningssekvenser (B4): stegredigeraren i upprepningsdialogen */
+.seq-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seq-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.seq-step-word {
+  font-size: 14px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.seq-step-input {
+  width: 64px;
+  min-width: 0;
+  text-align: center;
+}
+
+.seq-step-remove {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.seq-add-step {
+  margin-top: 10px;
+}
+
+.seq-preview,
+.seq-hint {
+  margin: 10px 2px 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.seq-preview {
+  font-weight: 600;
+}
+
 /* Följare (B1): liten kedja vid namnet */
 .counter-follows-icon {
   display: inline-block;

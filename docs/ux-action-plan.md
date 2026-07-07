@@ -90,7 +90,7 @@ passes: integrity first (B1–B3), expressiveness second (B4–B5).
 | B1 ✅ *(shipped July 2026)* | **Linked counters** | A counter can follow a primary counter ("Följ en annan räknare …" in the long-press menu): plus/minus on the primary ticks followers symmetrically; ticks directly on a follower never propagate. No chains, max one primary per project — enforced by the candidate list, not by rules the user has to learn. Follower marked with a small chain glyph. Reset never propagates. Pure logic in `counters/tick.js` with unit tests. | §3, wish 4 |
 | B2 ✅ *(shipped July 2026)* | **Counter lock** | Padlock button at the edge of the counter panel making all counters read-only (minus hidden, taps shake the card and pulse the padlock, long-press menus off — the padlock is the single way out). Persisted per project (`countersLocked`) so it survives backgrounding/restart, like highlight tape stays on. | wish 5, small obs. |
 | B3 ✅ *(shipped July 2026)* | **Accumulated history (`totalTicks`)** | Per-counter lifetime tick count that survives resets. Plus increments, minus decrements (a miscount was never a knitted row), reset doesn't touch it. Invisible in the counter UI; feeds "räknade varv" in stats. Backfilled `totalTicks = value` in db v4 + on old-backup restore. | §5b, wish 10 |
-| B4 | **Shaping sequences** | Replace single `repeatEvery` with an ordered sequence of steps: `[{every: 4, times: 3}, {every: 6, times: 4}]`. UI reads back what the pattern says: "öka vart 4:e varv 3 ggr, sedan vart 6:e varv 4 ggr". Displays "nästa: minskning på varv 31 · steg 2 av 7". Single-rhythm remains the simple default; "lägg till steg" reveals the sequence editor. | §4, wish 6 |
+| B4 ✅ *(shipped July 2026)* | **Shaping sequences** | Repeat is now an ordered sequence of steps `[{every: 4, times: 3}, {every: 6, times: 4}]`. Single rhythm stays the simple default (one open-ended step, displayed exactly as before); "Lägg till steg" in the Upprepning dialog reveals the step editor, whose read-back preview ("vart 4:e varv 3 ggr, sedan vart 6:e varv 4 ggr — sista åtgärden på varv 36") is the receipt that the pattern was entered right. Sequence counters show the absolute next action ("Nästa på varv 18 · steg 4 av 7"), light up "Dags! ✨" on action rows — haptics included, also through linked counters — and go quiet with "Formningen klar · 7 av 7" after the last one. Pure logic in `counters/sequence.js` with unit tests; migration in db v5 + old-backup restore (`repeatEvery: 6` → `[{every: 6, times: null}]`, field removed so the two shapes can never disagree). | §4, wish 6 |
 | B5 ✅ *(shipped July 2026)* | **Total and repeat shown together** | With both target and repeat set, the total ("47 /120") is the big number and the repeat position the sub-line ("Varv 5 av 6 · Dags! ✨"). Repeat-only counters keep the repeat position as the main number — a pure pattern-repeat counter is *about* the position. | small obs., wish 9 |
 
 **Design notes**
@@ -248,7 +248,7 @@ answers the review's headline criticism.
 reviewer and ask for the re-review against her own Tier 1 list (§5).
 
 ### Release 2 — "Real patterns" *(Tier 2)*
-- B4 Shaping sequences
+- B4 Shaping sequences ✅
 - D1 Multiple files per project
 - D7 Page gallery (shares the document-navigation surface with D1's file
   switcher — design them as one navigation model)

@@ -100,4 +100,18 @@ describe('nextTickMilestone – haptik för hela kaskaden', () => {
     const state = [{ ...varv, target: 11, repeatEvery: 11 }, raglan, fri];
     expect(nextTickMilestone(state, 'raglan')).toEqual({ hitTarget: false, hitRepeat: false });
   });
+
+  it('formningssekvens (B4): åtgärdsvarven känns även efter rytmbytet', () => {
+    // vart 4:e varv 3 ggr, sedan vart 6:e varv 4 ggr → åtgärd på 12 och 18, inte 16
+    const seq = [
+      { every: 4, times: 3 },
+      { every: 6, times: 4 },
+    ];
+    const at = (value) => [{ id: 'a', label: 'Ärmhål', value, sequence: seq }];
+    expect(nextTickMilestone(at(11), 'a').hitRepeat).toBe(true);
+    expect(nextTickMilestone(at(15), 'a').hitRepeat).toBe(false);
+    expect(nextTickMilestone(at(17), 'a').hitRepeat).toBe(true);
+    // sekvensen slut: inga fler firanden
+    expect(nextTickMilestone(at(38), 'a').hitRepeat).toBe(false);
+  });
 });

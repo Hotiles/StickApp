@@ -1,3 +1,5 @@
+import { counterSequence, isActionRow } from './sequence.js';
+
 /*
  * Ren räknarlogik för länkade räknare (B1) och ackumulerad historik (B3).
  * Inga IO- eller React-beroenden — enhetstestas i tick.test.js och
@@ -74,7 +76,8 @@ export function nextTickMilestone(counters, id) {
   for (const c of cascade) {
     const next = (c.value || 0) + 1;
     if (c.target && next === c.target) hitTarget = true;
-    if (c.repeatEvery && next % c.repeatEvery === 0) hitRepeat = true;
+    const steps = counterSequence(c);
+    if (steps && isActionRow(steps, next)) hitRepeat = true;
   }
   return { hitTarget, hitRepeat };
 }

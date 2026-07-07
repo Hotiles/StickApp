@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLongPress } from '../ui/useLongPress.js';
+import { counterSequence, sequenceStatus, isSimpleRhythm, isActionRow } from './sequence.js';
 
 /*
  * En räknare: stor tryckyta, tryck = +1 med haptik/visuell feedback,
@@ -38,12 +39,30 @@ export default function Counter({
   const fraction = target ? Math.min(1, counter.value / target) : 0;
   const done = target && counter.value >= target;
 
-  // Upprepning: "gör ökning var 6:e varv" — visa var i repetitionen man är
-  // och lys upp på själva åtgärdsvarvet.
-  const repeatEvery = counter.repeatEvery || null;
-  const repeatPos = repeatEvery && counter.value > 0 ? ((counter.value - 1) % repeatEvery) + 1 : 0;
-  const repeatDue = repeatEvery && repeatPos === repeatEvery;
-  const repeatsDone = repeatEvery ? Math.floor(counter.value / repeatEvery) : 0;
+  // Upprepning (B4): en enkel rytm visas som förr ("Varv 5 av 6"), en
+  // formningssekvens visar nästa åtgärd i absoluta varv och hur många
+  // åtgärder som är gjorda — de tal man jämför mot mönstertexten.
+  const steps = counterSequence(counter);
+  const seq = steps ? sequenceStatus(steps, counter.value) : null;
+  const simpleRhythm = steps ? isSimpleRhythm(steps) : false;
+  const repeatDue = seq ? seq.due : false;
+
+  let seqSub = null;
+  if (seq && simpleRhythm) {
+    seqSub = repeatDue
+      ? 'Dags! ✨'
+      : target
+        ? `Varv ${seq.pos} av ${seq.every}${seq.actionsDone ? ` · ${seq.actionsDone} rep` : ''}`
+        : `Totalt ${counter.value}${seq.actionsDone ? ` · ${seq.actionsDone} rep` : ''}`;
+  } else if (seq) {
+    seqSub = repeatDue
+      ? `Dags! ✨${seq.totalActions ? ` · steg ${seq.actionsDone} av ${seq.totalActions}` : ''}`
+      : seq.finished
+        ? `Formningen klar · ${seq.totalActions} av ${seq.totalActions}`
+        : `Nästa på varv ${seq.nextActionRow}${
+            seq.totalActions ? ` · steg ${seq.actionsDone + 1} av ${seq.totalActions}` : ''
+          }`;
+  }
 
   const pressProps = useLongPress({
     onTap() {
@@ -57,7 +76,7 @@ export default function Counter({
       onIncrement();
       const next = counter.value + 1;
       const hitTarget = nextMilestone?.hitTarget || (target && next === target);
-      const hitRepeat = nextMilestone?.hitRepeat || (repeatEvery && next % repeatEvery === 0);
+      const hitRepeat = nextMilestone?.hitRepeat || (steps && isActionRow(steps, next));
       if (hitTarget || hitRepeat || (next > 0 && next % 10 === 0)) {
         if (navigator.vibrate) navigator.vibrate(hitTarget ? [20, 40, 20, 40, 40] : [15, 40, 25]);
         setMilestone(true);
@@ -87,7 +106,13 @@ export default function Counter({
         className="counter-tap"
         {...pressProps}
         aria-label={`${counter.label}: ${counter.value}${target ? ` av ${target}` : ''}${
-          repeatEvery ? `, varv ${repeatPos} av ${repeatEvery} i repetitionen` : ''
+          seq
+            ? simpleRhythm
+              ? `, varv ${seq.pos} av ${seq.every} i repetitionen`
+              : seq.finished
+                ? ', formningen klar'
+                : `, nästa åtgärd på varv ${seq.nextActionRow}`
+            : ''
         }${followsLabel ? `. Följer ${followsLabel}` : ''}${
           locked ? '. Låst — lås upp med hänglåset.' : '. Tryck för att öka, håll för meny.'
         }`}
@@ -97,22 +122,14 @@ export default function Counter({
           {counter.label}
         </span>
         <span className="counter-value" key={counter.value}>
-          {repeatEvery && !target ? repeatPos : counter.value}
-          {repeatEvery && !target ? (
-            <span className="counter-of"> /{repeatEvery}</span>
+          {simpleRhythm && !target ? seq.pos : counter.value}
+          {simpleRhythm && !target ? (
+            <span className="counter-of"> /{seq.every}</span>
           ) : target ? (
             <span className="counter-of"> /{target}</span>
           ) : null}
         </span>
-        {repeatEvery ? (
-          <span className="counter-sub">
-            {repeatDue
-              ? 'Dags! ✨'
-              : target
-                ? `Varv ${repeatPos} av ${repeatEvery}${repeatsDone ? ` · ${repeatsDone} rep` : ''}`
-                : `Totalt ${counter.value}${repeatsDone ? ` · ${repeatsDone} rep` : ''}`}
-          </span>
-        ) : null}
+        {seqSub ? <span className="counter-sub">{seqSub}</span> : null}
       </button>
       {!locked && (
         <button

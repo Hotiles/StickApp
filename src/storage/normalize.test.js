@@ -103,6 +103,64 @@ describe('normalizeProjectCounters – backfyllning av v3-projekt (B2+B3)', () =
   });
 });
 
+describe('normalizeProjectCounters – repeatEvery blir sequence (v5, B4)', () => {
+  const v4 = {
+    ...base,
+    status: 'pågående',
+    countersLocked: false,
+    counters: [
+      { id: 'c1', label: 'Raglan', value: 12, totalTicks: 12, repeatEvery: 4 },
+      { id: 'c2', label: 'Varv', value: 47, totalTicks: 47, repeatEvery: null },
+    ],
+  };
+
+  it('repeatEvery: N blir en öppen enstegs-sekvens och fältet försvinner', () => {
+    const p = normalizeProjectCounters(v4);
+    expect(p.counters[0].sequence).toEqual([{ every: 4, times: null }]);
+    expect('repeatEvery' in p.counters[0]).toBe(false);
+  });
+
+  it('repeatEvery: null städas bort utan att skapa någon sekvens', () => {
+    const p = normalizeProjectCounters(v4);
+    expect(p.counters[1].sequence).toBeUndefined();
+    expect('repeatEvery' in p.counters[1]).toBe(false);
+  });
+
+  it('en befintlig sequence skrivs aldrig över av kvarliggande repeatEvery', () => {
+    const p = normalizeProjectCounters({
+      ...base,
+      countersLocked: false,
+      counters: [
+        {
+          id: 'c1',
+          label: 'Raglan',
+          value: 3,
+          totalTicks: 3,
+          repeatEvery: 6,
+          sequence: [{ every: 4, times: 3 }],
+        },
+      ],
+    });
+    expect(p.counters[0].sequence).toEqual([{ every: 4, times: 3 }]);
+    expect('repeatEvery' in p.counters[0]).toBe(false);
+  });
+
+  it('är idempotent — andra körningen är en no-op (samma referens)', () => {
+    const once = normalizeProjectCounters(v4);
+    expect(normalizeProjectCounters(once)).toBe(once);
+  });
+
+  it('v3-poster får både totalTicks och sequence i samma svep', () => {
+    const p = normalizeProjectCounters({
+      ...base,
+      counters: [{ id: 'c1', label: 'Raglan', value: 8, repeatEvery: 4 }],
+    });
+    expect(p.counters[0].totalTicks).toBe(8);
+    expect(p.counters[0].sequence).toEqual([{ every: 4, times: null }]);
+    expect(p.countersLocked).toBe(false);
+  });
+});
+
 describe('normalizeProject – datum + räknare i ett svep', () => {
   it('backfyller både v2-datum och v3-räknare', () => {
     const p = normalizeProject({

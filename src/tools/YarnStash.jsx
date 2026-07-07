@@ -216,7 +216,15 @@ function YarnFormModal({ yarn, onClose, onDelete, onSaved }) {
               <PhotoThumb
                 key={form.photoBlobId}
                 blobId={form.photoBlobId}
-                onRemove={() => set('photoBlobId', null)}
+                onRemove={async () => {
+                  const removed = form.photoBlobId;
+                  set('photoBlobId', null);
+                  // Ett nyss tillagt (osparat) foto kan hårdraderas direkt
+                  if (removed === addedPhotoRef.current) {
+                    addedPhotoRef.current = null;
+                    await deleteBlobHard(removed);
+                  }
+                }}
               />
             ) : (
               <button

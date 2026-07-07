@@ -3,7 +3,9 @@
  * Strategi: cache-first med runtime-cachning av alla same-origin GET-svar.
  * Vid ny version: bumpa CACHE_VERSION så gamla cachar rensas vid activate.
  */
-const CACHE_VERSION = 'stickan-v2';
+// OBS: deploy-workflowen stämplar om värdet med commit-SHA:n via regexen
+// "stickan-v[0-9a-z]+" — behåll formen "stickan-v<något>" vid manuell bump.
+const CACHE_VERSION = 'stickan-v3';
 const CORE = ['./', './index.html', './manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -50,6 +52,25 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
+
+  // Navigeringar: nätverk först så att ny version når användaren vid nästa
+  // start med uppkoppling — cachen är fallback offline.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(event.request).then((cached) => cached || caches.match('./index.html'))
+        )
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {

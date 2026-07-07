@@ -15,7 +15,8 @@ import Modal from '../ui/Modal.jsx';
 import PatternThumb from './PatternThumb.jsx';
 import YarnBall from '../ui/YarnBall.jsx';
 import { SkeletonTiles } from '../ui/Skeleton.jsx';
-import { NewProjectModal } from '../app/HomeView.jsx';
+import { formatSize } from '../ui/format.js';
+import NewProjectModal from '../projects/NewProjectModal.jsx';
 
 /*
  * Mönsterbiblioteket (§4.2): mappar, PDF-import, öppna fristående.
@@ -376,10 +377,4 @@ function TextPromptModal({ title, initial = '', placeholder, onClose, onSave }) 
       </form>
     </Modal>
   );
-}
-
-export function formatSize(bytes) {
-  if (!bytes && bytes !== 0) return '';
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} kB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`;
 }

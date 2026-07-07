@@ -9,6 +9,7 @@ import {
   getSettings,
   updateSettings,
   listPatterns,
+  DEFAULT_VIEW_STATE,
 } from '../storage/storage.js';
 import { usePdfDocument } from '../pdf/usePdfDocument.js';
 import PdfViewer from '../pdf/PdfViewer.jsx';
@@ -77,7 +78,10 @@ export default function ProjectView({ projectId }) {
     const pending = pendingRef.current;
     if (Object.keys(pending).length === 0) return;
     pendingRef.current = {};
-    updateProject(projectId, pending).catch(() => {});
+    updateProject(projectId, pending).catch((err) => {
+      // Tyst dataförlust är värre än en loggrad — syns i felsökningsläge.
+      console.error('Kunde inte spara projektläget', err);
+    });
   }, [projectId]);
 
   const saveDebounced = useCallback(
@@ -118,7 +122,14 @@ export default function ProjectView({ projectId }) {
   }
 
   async function handlePickPattern(patternId) {
-    const updated = await updateProject(projectId, { patternId });
+    const changes = { patternId };
+    if (patternId !== project.patternId) {
+      // Nytt mönster ska inte ärva förra mönstrets sida/zoom/band —
+      // släng även odebounce:ade vyändringar som hör till det gamla.
+      changes.viewState = DEFAULT_VIEW_STATE();
+      delete pendingRef.current.viewState;
+    }
+    const updated = await updateProject(projectId, changes);
     setPickingPattern(false);
     setProject(updated);
     setPdfBlob(null);

@@ -8,7 +8,7 @@ import {
 import { exportBackup, readBackupZip, restoreReplace, restoreMerge } from '../storage/backup.js';
 import TopBar from '../ui/TopBar.jsx';
 import Modal from '../ui/Modal.jsx';
-import { formatSize } from '../patterns/PatternLibrary.jsx';
+import { formatSize } from '../ui/format.js';
 import { BAND_COLOR } from '../pdf/BandOverlay.jsx';
 
 export default function Settings() {

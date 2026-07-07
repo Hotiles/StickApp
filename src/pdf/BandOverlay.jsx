@@ -60,6 +60,22 @@ export default function BandOverlay({
     setDragPos(null);
   }
 
+  function handleKeyDown(e) {
+    const step = e.shiftKey ? 0.05 : 0.01;
+    let next = null;
+    if (horizontal) {
+      if (e.key === 'ArrowDown') next = clamp01(pos + step);
+      if (e.key === 'ArrowUp') next = clamp01(pos - step);
+    } else {
+      if (e.key === 'ArrowRight') next = clamp01(pos + step);
+      if (e.key === 'ArrowLeft') next = clamp01(pos - step);
+    }
+    if (next != null) {
+      e.preventDefault();
+      onDragEnd(next);
+    }
+  }
+
   const style = horizontal
     ? {
         top: `${pos * pageCssHeight - thicknessCss / 2}px`,
@@ -82,6 +98,8 @@ export default function BandOverlay({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
       role="slider"
       aria-label="Markeringsband"
       aria-valuenow={Math.round(pos * 100)}

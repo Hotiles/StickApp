@@ -1,12 +1,25 @@
-import * as pdfjsLib from 'pdfjs-dist';
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+/*
+ * pdf.js laddas dynamiskt vid första användningen — biblioteket (och dess
+ * worker) är appens tyngsta beroende och ska inte ligga i startbunten.
+ */
+let libPromise = null;
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
-
-export { pdfjsLib };
+function getLib() {
+  if (!libPromise) {
+    libPromise = Promise.all([
+      import('pdfjs-dist'),
+      import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
+    ]).then(([lib, worker]) => {
+      lib.GlobalWorkerOptions.workerSrc = worker.default;
+      return lib;
+    });
+  }
+  return libPromise;
+}
 
 /** Öppnar ett pdf.js-dokument från en Blob. Anroparen ansvarar för destroy(). */
 export async function openPdfFromBlob(blob) {
+  const pdfjsLib = await getLib();
   const data = await blob.arrayBuffer();
   const task = pdfjsLib.getDocument({ data, isEvalSupported: false });
   return task.promise;

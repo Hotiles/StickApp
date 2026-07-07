@@ -4,13 +4,17 @@
 Release 2 items D1 and D7 from `docs/ux-action-plan.md`, which calls for
 designing them as **one navigation model**.*
 
-> **Status (July 2026):** D1 is **paused** — the user wants to validate the
-> actual need with real users before building the multi-file model. D7
-> **shipped standalone** against the single-file model, with one deliberate
-> deviation from §4: the gallery lives inside `PdfViewer` (which owns the
-> one document) instead of the parent view. Nothing else changed, and
-> nothing needs rework when D1 lands — the parent-owned, multi-section
-> gallery described below is the lift-out path. `band.lastMovedPage`
+> **Status (July 2026): D1 is dropped, D7 is shipped.** User research gave
+> a clear answer: the patterns users actually knit from are almost
+> exclusively a single file with instructions and chart together — more
+> than one file per project is rare. The multi-file design (§2–§3) is kept
+> here as an archive should reality change; nothing in the codebase
+> prepares for it speculatively.
+>
+> D7 shipped standalone against the single-file model, with one deviation
+> from §4 that the drop makes permanent: the gallery lives inside
+> `PdfViewer` (which owns the one document) rather than the parent view —
+> the right home when one project means one document. `band.lastMovedPage`
 > shipped exactly as §5 describes (no schema migration; it lives inside
 > `viewState.band` and `normalizeBand` backfills null).
 

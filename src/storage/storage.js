@@ -162,7 +162,11 @@ export const DEFAULT_VIEW_STATE = () => ({
     positionByPageV: {},
     visible: true,
     lastMovedPage: null,
+    color: '244, 194, 219', // rosa (band 1) — se bandState.js BAND_COLORS
+    thicknessPt: null, // null = Inställningarnas standard (D6)
   },
+  band2: null, // opt-in andra band (D2)
+  markers: {}, // storleksmarkörer per sida (D3)
 });
 
 export async function listProjects(status) {

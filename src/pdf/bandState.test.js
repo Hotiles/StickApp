@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { cycleOrientation, normalizeBand, ORIENTATIONS } from './bandState.js';
+import {
+  cycleOrientation,
+  normalizeBand,
+  makeSecondBand,
+  ORIENTATIONS,
+  DEFAULT_BAND_COLOR,
+  BAND_COLORS,
+} from './bandState.js';
 
 describe('cycleOrientation – trelägescykeln', () => {
   it('går horisontell → vertikal → båda → horisontell', () => {
@@ -22,7 +29,13 @@ describe('normalizeBand – migrering av sparade lägen', () => {
       positionByPageV: {},
       visible: true,
       lastMovedPage: null,
+      color: DEFAULT_BAND_COLOR,
+      thicknessPt: null,
     });
+  });
+
+  it('saknat band kan få en egen grundfärg (andra bandet)', () => {
+    expect(normalizeBand(null, BAND_COLORS[1]).color).toBe(BAND_COLORS[1]);
   });
 
   it('äldre läge utan positionByPageV får samma positioner i båda kartorna', () => {
@@ -47,6 +60,19 @@ describe('normalizeBand – migrering av sparade lägen', () => {
     expect(band.positionByPage).toEqual({ 2: 0.4 });
   });
 
+  it('läge utan color/thicknessPt (före D2) backfylls', () => {
+    const old = {
+      orientation: 'horisontell',
+      positionByPage: { 1: 0.4 },
+      positionByPageV: { 1: 0.4 },
+      visible: true,
+      lastMovedPage: 1,
+    };
+    const band = normalizeBand(old);
+    expect(band.color).toBe(DEFAULT_BAND_COLOR);
+    expect(band.thicknessPt).toBeNull();
+  });
+
   it('dagens form passerar orörd', () => {
     const band = {
       orientation: 'båda',
@@ -54,7 +80,20 @@ describe('normalizeBand – migrering av sparade lägen', () => {
       positionByPageV: { 1: 0.8 },
       visible: true,
       lastMovedPage: 3,
+      color: DEFAULT_BAND_COLOR,
+      thicknessPt: null,
     };
     expect(normalizeBand(band)).toBe(band);
+  });
+});
+
+describe('makeSecondBand – opt-in andra band (D2)', () => {
+  it('får en egen färg skild från första bandet', () => {
+    const b = makeSecondBand();
+    expect(b.color).toBe(BAND_COLORS[1]);
+    expect(b.color).not.toBe(DEFAULT_BAND_COLOR);
+    expect(b.visible).toBe(true);
+    expect(b.thicknessPt).toBeNull();
+    expect(b.positionByPage).toEqual({});
   });
 });

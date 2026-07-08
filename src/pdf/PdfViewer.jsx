@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BandOverlay from './BandOverlay.jsx';
 import PageGallery from './PageGallery.jsx';
+import Modal from '../ui/Modal.jsx';
 import { stepBandFit, BAND_STEP_PT } from './bandFit.js';
-import { cycleOrientation, normalizeBand } from './bandState.js';
+import { cycleOrientation, normalizeBand, makeSecondBand, BAND_COLORS } from './bandState.js';
 
 /*
  * Mönstervisaren: pdf.js-canvas med pinch-zoom, panorering, sidbläddring
@@ -18,6 +19,8 @@ const MAX_CANVAS_PIXELS = 12_000_000; // säkerhetsmarginal för iOS-canvasgrän
 const MAX_CANVAS_DIM = 4096;
 const SWIPE_MIN_DX = 64;
 const DEFAULT_BAND_POSITION = 0.25;
+const MARKER_PT = 26; // storleksmarkörens diameter i PDF-punkter (D3)
+const MARKER_TAP_MOVE = 12; // rörelse under detta = tryck, inte panorering
 
 export default function PdfViewer({
   doc,
@@ -41,19 +44,41 @@ export default function PdfViewer({
   const [settledZoom, setSettledZoom] = useState(initialViewState?.zoom ?? 1);
   // Riktningen kan vara 'horisontell', 'vertikal' eller 'båda' (två band
   // i kors). Äldre sparade lägen lyfts till dagens form (bandState.js).
-  const [band, setBand] = useState(() => normalizeBand(initialViewState?.band));
-  // Tjocklek per projekt (D6): finns en override i viewState gäller den;
-  // annars Inställningars standard — och standarden fortsätter gälla tills
-  // användaren faktiskt justerar i vyn (först då börjar vi spara den).
-  const [bandThicknessPt, setBandThicknessPt] = useState(
-    initialViewState?.bandThickness ?? bandThickness
+  // Varje band bär nu sin egen färg och tjockleksöverride (D2/D6): finns
+  // ingen override (null) gäller Inställningars standard — och standarden
+  // fortsätter gälla tills användaren faktiskt passar in bandet.
+  const [band, setBand] = useState(() => {
+    const primary = normalizeBand(initialViewState?.band, BAND_COLORS[0]);
+    // D6-arv: äldre projekt lade projekt-tjockleken i viewState.bandThickness.
+    // Flytta in den på första bandet så att alla band följer samma modell.
+    if (primary.thicknessPt == null && initialViewState?.bandThickness != null) {
+      return { ...primary, thicknessPt: initialViewState.bandThickness };
+    }
+    return primary;
+  });
+  // Andra bandet (D2): opt-in, null tills användaren lägger till det.
+  const [band2, setBand2] = useState(() =>
+    initialViewState?.band2 ? normalizeBand(initialViewState.band2, BAND_COLORS[1]) : null
   );
-  const bandThicknessOverrideRef = useRef(initialViewState?.bandThickness != null);
+  // Vilket band verktygsknapparna (synlighet, riktning, inpassning) styr.
+  const [activeBandIndex, setActiveBandIndex] = useState(0);
+  // Storleksmarkörer (D3): tryck-för-att-ringa-in per sida, {[sida]: [{x,y}]}
+  // i dokumentkoordinater (0–1). Inget schemabyte behövs — saknas fältet
+  // läses det som tomt, precis som D7:s lastMovedPage.
+  const [markers, setMarkers] = useState(() => initialViewState?.markers ?? {});
+  const [markerMode, setMarkerMode] = useState(false);
+  // Fler bandverktyg (D2/D3): opt-in-åtgärder i en liten sheet så att
+  // verktygsraden håller sig till en rad på en smal telefon.
+  const [toolsOpen, setToolsOpen] = useState(false);
   // Inpassningsläget (D6): verktygsraden byts mot −/+ som stegar tjockleken.
   const [fittingBand, setFittingBand] = useState(false);
   // Sidgalleriet (D7): rutnät med alla sidor för direkthopp.
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [renderError, setRenderError] = useState(null);
+
+  // Det aktiva bandet (och index) — bara band 2 om det finns.
+  const activeIdx = band2 ? activeBandIndex : 0;
+  const activeBand = activeIdx === 1 && band2 ? band2 : band;
 
   const pointersRef = useRef(new Map());
   const gestureRef = useRef(null);
@@ -65,17 +90,16 @@ export default function PdfViewer({
   const reportState = useCallback(
     (next = {}) => {
       if (!onStateChange) return;
-      const viewState = {
+      onStateChange({
         page: next.page ?? pageNumRef.current,
         zoom: next.zoom ?? zoomRef.current,
         scrollX: next.scrollX ?? scrollRef.current.x,
         scrollY: next.scrollY ?? scrollRef.current.y,
         band: next.band ?? bandRef.current,
-      };
-      if (bandThicknessOverrideRef.current) {
-        viewState.bandThickness = next.bandThickness ?? bandThicknessPtRef.current;
-      }
-      onStateChange(viewState);
+        // band2 kan vara null (borttaget) — skilj "oförändrat" från "null"
+        band2: next.band2 !== undefined ? next.band2 : band2Ref.current,
+        markers: next.markers ?? markersRef.current,
+      });
     },
     [onStateChange]
   );
@@ -85,12 +109,20 @@ export default function PdfViewer({
   const zoomRef = useRef(zoom);
   const scrollRef = useRef(scroll);
   const bandRef = useRef(band);
-  const bandThicknessPtRef = useRef(bandThicknessPt);
+  const band2Ref = useRef(band2);
+  const markersRef = useRef(markers);
+  const activeIdxRef = useRef(activeIdx);
+  const markerModeRef = useRef(markerMode);
+  const pageInfoRef = useRef(null);
   pageNumRef.current = pageNum;
   zoomRef.current = zoom;
   scrollRef.current = scroll;
   bandRef.current = band;
-  bandThicknessPtRef.current = bandThicknessPt;
+  band2Ref.current = band2;
+  markersRef.current = markers;
+  activeIdxRef.current = activeIdx;
+  markerModeRef.current = markerMode;
+  pageInfoRef.current = pageInfo;
 
   // ---------- Viewportstorlek ----------
   useEffect(() => {
@@ -130,6 +162,8 @@ export default function PdfViewer({
     const w = viewportSize.w;
     return { w, h: (w * pageInfo.heightPt) / pageInfo.widthPt };
   }, [pageInfo, viewportSize.w]);
+  const baseCssRef = useRef(null);
+  baseCssRef.current = baseCss;
 
   const clampOffsets = useCallback(
     (z, sx, sy) => {
@@ -208,9 +242,10 @@ export default function PdfViewer({
       const clamped = clampPage(next, doc);
       if (clamped === pageNumRef.current) return;
       setPageNum(clamped);
-      // Sidbyte lämnar inpassningsläget — man ska aldrig komma tillbaka
-      // till ett beväpnat läge man glömt (stickning avbryts jämt).
+      // Sidbyte lämnar inpassnings- och markörläget — man ska aldrig komma
+      // tillbaka till ett beväpnat läge man glömt (stickning avbryts jämt).
       setFittingBand(false);
+      setMarkerMode(false);
       const resetScroll = clampOffsets(zoomRef.current, 0, 0);
       setScroll(resetScroll);
       reportState({ page: clamped, scrollX: resetScroll.x, scrollY: resetScroll.y });
@@ -285,6 +320,17 @@ export default function PdfViewer({
         const { totalDx, totalDy } = gesture;
         const moved = Math.hypot(totalDx, totalDy);
 
+        // Markörläget (D3): ett tryck ringar in (eller suddar) storleken.
+        // Svep och dubbeltryck är avstängda så man inte råkar byta sida.
+        if (markerModeRef.current) {
+          // toggleMarkerAt rapporterar själv de nya markörerna; en ren
+          // panorering sparar i stället scrollpositionen.
+          if (moved < MARKER_TAP_MOVE) toggleMarkerAt(e.clientX, e.clientY);
+          else reportState();
+          gestureRef.current = null;
+          return;
+        }
+
         // Svep byter sida när sidan fyller bredden (ingen horisontell pan möjlig)
         if (
           zoomRef.current <= 1.02 &&
@@ -339,6 +385,7 @@ export default function PdfViewer({
   }
 
   function handleDoubleClick(e) {
+    if (markerModeRef.current) return; // markörläget äger trycket
     toggleZoomAt(e.clientX, e.clientY);
   }
 
@@ -380,34 +427,67 @@ export default function PdfViewer({
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') goToPage(pageNumRef.current - 1);
   }
 
-  // ---------- Bandet ----------
-  const showBandH = band.visible && band.orientation !== 'vertikal';
-  const showBandV = band.visible && band.orientation !== 'horisontell';
-  const bandPositionH = band.positionByPage[pageNum] ?? DEFAULT_BAND_POSITION;
-  const bandPositionV = band.positionByPageV[pageNum] ?? DEFAULT_BAND_POSITION;
+  // ---------- Banden (D2: ett eller två) ----------
+  // Tjockleken per band: egen override (pt) eller Inställningars standard.
+  const bandThicknessOf = (b) => b.thicknessPt ?? bandThickness;
 
-  function updateBand(changes) {
-    const next = { ...bandRef.current, ...changes };
-    setBand(next);
-    reportState({ band: next });
+  // Sätter ett band vid index 0/1 och rapporterar rätt fält uppåt.
+  function setBandAt(index, next) {
+    if (index === 1) {
+      setBand2(next);
+      reportState({ band2: next });
+    } else {
+      setBand(next);
+      reportState({ band: next });
+    }
   }
 
-  function handleBandDragEnd(orientation, position) {
+  function updateBandAt(index, changes) {
+    const current = index === 1 ? band2Ref.current : bandRef.current;
+    if (!current) return;
+    setBandAt(index, { ...current, ...changes });
+  }
+
+  function handleBandDragEnd(index, orientation, position) {
+    const current = index === 1 ? band2Ref.current : bandRef.current;
+    if (!current) return;
     const key = orientation === 'horisontell' ? 'positionByPage' : 'positionByPageV';
-    updateBand({
-      [key]: { ...bandRef.current[key], [pageNumRef.current]: position },
+    setBandAt(index, {
+      ...current,
+      [key]: { ...current[key], [pageNumRef.current]: position },
       // "Här är du" i sidgalleriet (D7): bandets senaste flytt är ditt varv
       lastMovedPage: pageNumRef.current,
     });
   }
 
-  // D6: −/+ i inpassningsläget stegar tjockleken kantförankrat (bandFit.js)
-  // och sparar den (i punkter, dokumentkoordinater) som projektets override.
-  // Vid 'båda' stegas tjockleken en gång men positionerna räknas om var
-  // för sig så att bägge banden behåller sin förankrade kant.
+  function addSecondBand() {
+    if (band2Ref.current) return;
+    const next = makeSecondBand();
+    setBand2(next);
+    setActiveBandIndex(1); // hoppa direkt till det nya bandet man ska placera
+    reportState({ band2: next });
+  }
+
+  function removeSecondBand() {
+    setBand2(null);
+    setActiveBandIndex(0);
+    setFittingBand(false);
+    reportState({ band2: null });
+  }
+
+  function cycleActiveBand() {
+    setActiveBandIndex((i) => (i === 0 ? 1 : 0));
+  }
+
+  // D6: −/+ i inpassningsläget stegar det aktiva bandets tjocklek
+  // kantförankrat (bandFit.js) och sparar den som bandets override. Vid
+  // 'båda' stegas tjockleken en gång men positionerna räknas om var för
+  // sig så att bägge kanterna behåller sin förankring.
   function stepBandThickness(deltaPt) {
     if (!pageInfo) return;
-    const current = bandRef.current;
+    const index = activeIdxRef.current;
+    const current = index === 1 ? band2Ref.current : bandRef.current;
+    if (!current) return;
     const page = pageNumRef.current;
     const parts = current.orientation === 'båda' ? ['horisontell', 'vertikal'] : [current.orientation];
     let thicknessPt = null;
@@ -417,7 +497,7 @@ export default function PdfViewer({
       const key = horizontal ? 'positionByPage' : 'positionByPageV';
       const next = stepBandFit({
         position: current[key][page] ?? DEFAULT_BAND_POSITION,
-        thicknessPt: bandThicknessPtRef.current,
+        thicknessPt: bandThicknessOf(current),
         deltaPt,
         spanPt: horizontal ? pageInfo.heightPt : pageInfo.widthPt,
       });
@@ -426,11 +506,41 @@ export default function PdfViewer({
       nextBand[key] = { ...current[key], [page]: next.position };
     }
     nextBand.lastMovedPage = page; // inpassning räknas också som "bandet är här"
+    nextBand.thicknessPt = thicknessPt;
     if (navigator.vibrate) navigator.vibrate(8);
-    bandThicknessOverrideRef.current = true;
-    setBandThicknessPt(thicknessPt);
-    setBand(nextBand);
-    reportState({ band: nextBand, bandThickness: thicknessPt });
+    setBandAt(index, nextBand);
+  }
+
+  // ---------- Storleksmarkörer (D3) ----------
+  // Ett tryck i markörläget ringar in punkten; ett tryck på en befintlig
+  // markör suddar den. Positionen lagras som andel (0–1) i dokument-
+  // koordinater precis som bandet, så ringen sitter kvar på samma siffra
+  // vid zoom och sidbyte.
+  function toggleMarkerAt(clientX, clientY) {
+    const base = baseCssRef.current;
+    const info = pageInfoRef.current;
+    if (!base || !info) return;
+    const rect = viewportRef.current.getBoundingClientRect();
+    const pageW = base.w * zoomRef.current;
+    const pageH = base.h * zoomRef.current;
+    const fx = clamp01((clientX - rect.left - scrollRef.current.x) / pageW);
+    const fy = clamp01((clientY - rect.top - scrollRef.current.y) / pageH);
+    const page = pageNumRef.current;
+    const list = markersRef.current[page] || [];
+    // Träffprövning i punkter (zoomoberoende): inom markörens radie = sudda
+    const rPt = MARKER_PT / 2;
+    const hit = list.findIndex((m) => {
+      const dxPt = (m.x - fx) * info.widthPt;
+      const dyPt = (m.y - fy) * info.heightPt;
+      return Math.hypot(dxPt, dyPt) <= rPt * 1.2;
+    });
+    const nextList = hit >= 0 ? list.filter((_, i) => i !== hit) : [...list, { x: fx, y: fy }];
+    const nextMarkers = { ...markersRef.current };
+    if (nextList.length) nextMarkers[page] = nextList;
+    else delete nextMarkers[page];
+    if (navigator.vibrate) navigator.vibrate(hit >= 0 ? 4 : 8);
+    setMarkers(nextMarkers);
+    reportState({ markers: nextMarkers });
   }
 
   // ---------- Render ----------
@@ -438,6 +548,10 @@ export default function PdfViewer({
   const pageCssW = baseCss ? baseCss.w * zoom : 0;
   const pageCssH = baseCss ? baseCss.h * zoom : 0;
   const cssPerPt = pageInfo && pageCssW ? pageCssW / pageInfo.widthPt : 1;
+
+  const bandList = band2 ? [band, band2] : [band];
+  const pageMarkers = markers[pageNum] || [];
+  const markerDiaCss = MARKER_PT * cssPerPt;
 
   return (
     <div className="pdf-container">
@@ -463,30 +577,36 @@ export default function PdfViewer({
             }}
           >
             <canvas ref={canvasRef} className="pdf-canvas" />
-            {showBandH && (
-              <BandOverlay
-                orientation="horisontell"
-                position={bandPositionH}
-                thicknessCss={bandThicknessPt * cssPerPt}
-                opacity={bandOpacity}
-                pageCssWidth={pageCssW}
-                pageCssHeight={pageCssH}
-                fitting={fittingBand}
-                onDragEnd={(pos) => handleBandDragEnd('horisontell', pos)}
+            {bandList.map((b, i) => {
+              const thicknessCss = bandThicknessOf(b) * cssPerPt;
+              const fitting = fittingBand && i === activeIdx;
+              return (
+                <BandGroup
+                  key={i}
+                  band={b}
+                  page={pageNum}
+                  thicknessCss={thicknessCss}
+                  opacity={bandOpacity}
+                  pageCssWidth={pageCssW}
+                  pageCssHeight={pageCssH}
+                  fitting={fitting}
+                  onDragEnd={(orientation, pos) => handleBandDragEnd(i, orientation, pos)}
+                />
+              );
+            })}
+            {pageMarkers.map((m, i) => (
+              <div
+                key={i}
+                className={`size-marker ${markerMode ? 'size-marker-editable' : ''}`}
+                style={{
+                  left: `${m.x * pageCssW - markerDiaCss / 2}px`,
+                  top: `${m.y * pageCssH - markerDiaCss / 2}px`,
+                  width: `${markerDiaCss}px`,
+                  height: `${markerDiaCss}px`,
+                }}
+                aria-hidden="true"
               />
-            )}
-            {showBandV && (
-              <BandOverlay
-                orientation="vertikal"
-                position={bandPositionV}
-                thicknessCss={bandThicknessPt * cssPerPt}
-                opacity={bandOpacity}
-                pageCssWidth={pageCssW}
-                pageCssHeight={pageCssH}
-                fitting={fittingBand}
-                onDragEnd={(pos) => handleBandDragEnd('vertikal', pos)}
-              />
-            )}
+            ))}
           </div>
         )}
         {!baseCss && !renderError && <div className="pdf-status">Laddar mönster …</div>}
@@ -504,7 +624,9 @@ export default function PdfViewer({
             >
               −
             </HoldStepButton>
-            <span className="band-fit-label">Bandets tjocklek</span>
+            <span className="band-fit-label">
+              {band2 ? `Band ${activeIdx + 1} – tjocklek` : 'Bandets tjocklek'}
+            </span>
             <HoldStepButton
               ariaLabel="Öka bandets tjocklek"
               onStep={(steps) => stepBandThickness(BAND_STEP_PT * steps)}
@@ -513,6 +635,14 @@ export default function PdfViewer({
             </HoldStepButton>
             <span className="pdf-toolbar-spacer" />
             <button className="band-fit-done" onClick={() => setFittingBand(false)}>
+              Klar
+            </button>
+          </>
+        ) : markerMode ? (
+          <>
+            <span className="band-fit-label">Tryck på din storlek – tryck igen för att sudda</span>
+            <span className="pdf-toolbar-spacer" />
+            <button className="band-fit-done" onClick={() => setMarkerMode(false)}>
               Klar
             </button>
           </>
@@ -546,25 +676,43 @@ export default function PdfViewer({
             {showBandControls && (
               <>
                 <span className="pdf-toolbar-spacer" />
+                {band2 && (
+                  <button
+                    className="btn-icon band-select"
+                    onClick={cycleActiveBand}
+                    aria-label={`Aktivt band ${activeIdx + 1} av 2 – växla`}
+                    title="Välj vilket band knapparna styr"
+                  >
+                    <span
+                      className="band-select-dot"
+                      style={{ background: `rgb(${activeBand.color})` }}
+                    />
+                    {activeIdx + 1}
+                  </button>
+                )}
                 <button
-                  className={`btn-icon ${band.visible ? 'btn-icon-active' : ''}`}
-                  onClick={() => updateBand({ visible: !band.visible })}
-                  aria-label={band.visible ? 'Dölj bandet' : 'Visa bandet'}
-                  title={band.visible ? 'Dölj bandet' : 'Visa bandet'}
+                  className={`btn-icon ${activeBand.visible ? 'btn-icon-active' : ''}`}
+                  onClick={() => updateBandAt(activeIdx, { visible: !activeBand.visible })}
+                  aria-label={activeBand.visible ? 'Dölj bandet' : 'Visa bandet'}
+                  title={activeBand.visible ? 'Dölj bandet' : 'Visa bandet'}
                 >
-                  <BandIcon />
+                  <BandIcon color={activeBand.color} />
                 </button>
-                {band.visible && (
+                {activeBand.visible && (
                   <>
                     <button
                       className="btn-icon"
-                      onClick={() => updateBand({ orientation: cycleOrientation(band.orientation) })}
+                      onClick={() =>
+                        updateBandAt(activeIdx, {
+                          orientation: cycleOrientation(activeBand.orientation),
+                        })
+                      }
                       aria-label="Växla bandets riktning"
                       title="Bandets riktning: horisontell, vertikal eller båda"
                     >
-                      {band.orientation === 'horisontell' ? (
+                      {activeBand.orientation === 'horisontell' ? (
                         '↕'
-                      ) : band.orientation === 'vertikal' ? (
+                      ) : activeBand.orientation === 'vertikal' ? (
                         '↔'
                       ) : (
                         <BandBothIcon />
@@ -580,11 +728,63 @@ export default function PdfViewer({
                     </button>
                   </>
                 )}
+                <button
+                  className="btn-icon"
+                  onClick={() => setToolsOpen(true)}
+                  aria-label="Fler bandverktyg"
+                  title="Andra band och storleksmarkör"
+                >
+                  <MoreIcon />
+                </button>
               </>
             )}
           </>
         )}
       </div>
+
+      {toolsOpen && (
+        <Modal title="Bandverktyg" onClose={() => setToolsOpen(false)}>
+          <div className="menu-list">
+            {band2 ? (
+              <button
+                className="menu-item"
+                onClick={() => {
+                  setToolsOpen(false);
+                  removeSecondBand();
+                }}
+              >
+                Ta bort andra bandet
+                <span className="menu-item-meta">Behåll bara ett band</span>
+              </button>
+            ) : (
+              <button
+                className="menu-item"
+                onClick={() => {
+                  setToolsOpen(false);
+                  addSecondBand();
+                }}
+              >
+                Lägg till ett andra band
+                <span className="menu-item-meta">
+                  Följ t.ex. både diagramraden och den skrivna instruktionen
+                </span>
+              </button>
+            )}
+            <button
+              className="menu-item"
+              onClick={() => {
+                setToolsOpen(false);
+                setMarkerMode(true);
+              }}
+            >
+              Märk din storlek
+              <span className="menu-item-meta">
+                Ringa in din siffra i ”56 (60, 64, 68)” – tryck igen för att sudda
+              </span>
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {galleryOpen && doc && (
         <PageGallery
@@ -602,10 +802,66 @@ export default function PdfViewer({
   );
 }
 
-function BandIcon() {
+/*
+ * Ett band på sidan: horisontellt, vertikalt eller båda (kors). Samlar
+ * de en–två BandOverlay som ett band består av så att PdfViewer kan mappa
+ * över en lista av band utan att duplicera villkoren (D2).
+ */
+function BandGroup({ band, page, thicknessCss, opacity, pageCssWidth, pageCssHeight, fitting, onDragEnd }) {
+  if (!band.visible) return null;
+  const showH = band.orientation !== 'vertikal';
+  const showV = band.orientation !== 'horisontell';
+  const posH = band.positionByPage[page] ?? DEFAULT_BAND_POSITION;
+  const posV = band.positionByPageV[page] ?? DEFAULT_BAND_POSITION;
+  return (
+    <>
+      {showH && (
+        <BandOverlay
+          orientation="horisontell"
+          position={posH}
+          thicknessCss={thicknessCss}
+          opacity={opacity}
+          color={band.color}
+          pageCssWidth={pageCssWidth}
+          pageCssHeight={pageCssHeight}
+          fitting={fitting}
+          onDragEnd={(pos) => onDragEnd('horisontell', pos)}
+        />
+      )}
+      {showV && (
+        <BandOverlay
+          orientation="vertikal"
+          position={posV}
+          thicknessCss={thicknessCss}
+          opacity={opacity}
+          color={band.color}
+          pageCssWidth={pageCssWidth}
+          pageCssHeight={pageCssHeight}
+          fitting={fitting}
+          onDragEnd={(pos) => onDragEnd('vertikal', pos)}
+        />
+      )}
+    </>
+  );
+}
+
+function BandIcon({ color = '244, 194, 219' }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-      <rect x="2" y="8" width="16" height="5" rx="2" fill="rgba(244,194,219,0.9)" stroke="currentColor" strokeWidth="1" />
+      <rect x="2" y="8" width="16" height="5" rx="2" fill={`rgba(${color}, 0.9)`} stroke="currentColor" strokeWidth="1" />
+    </svg>
+  );
+}
+
+/*
+ * Fler bandverktyg (D2/D3): ett litet band med en ring intill — antyder
+ * "andra band + storleksmarkör" utan att krocka med topbarens ⋯-meny.
+ */
+function MoreIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="2" y="6" width="10" height="4" rx="1.5" fill="rgba(160,205,175,0.9)" stroke="currentColor" strokeWidth="1" />
+      <circle cx="14.5" cy="13" r="3.5" stroke="#e08a2e" strokeWidth="1.8" />
     </svg>
   );
 }
@@ -701,6 +957,10 @@ function clampPage(page, doc) {
 
 function clamp(v, min, max) {
   return Math.min(max, Math.max(min, v));
+}
+
+function clamp01(v) {
+  return Math.min(1, Math.max(0, v));
 }
 
 function midpoint(a, b, el) {

@@ -22,6 +22,13 @@ All three are consistent with the design principles in
 simple, the sofa is the benchmark (one-handed, mid-row, no reading). Nothing
 here touches the core architecture.
 
+> **Status (July 2026): all three shipped.** M1 (rename), M2 (highlight
+> swipe) and H1 (home grid) were implemented as described below. Verified in
+> a real browser: tap places a ring, a horizontal swipe paints a highlight
+> bar, tapping a mark erases it, and both survive reload; the home grid shows
+> the projects two-up with "Nytt projekt" and the tool shortcuts back in view.
+> 84 unit tests green, no schema migration.
+
 ---
 
 ## M1 — Rename "storleksmarkör" → **Markör** (the general marker)

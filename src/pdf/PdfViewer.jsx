@@ -19,7 +19,9 @@ const MAX_CANVAS_PIXELS = 12_000_000; // säkerhetsmarginal för iOS-canvasgrän
 const MAX_CANVAS_DIM = 4096;
 const SWIPE_MIN_DX = 64;
 const DEFAULT_BAND_POSITION = 0.25;
-const MARKER_PT = 26; // storleksmarkörens diameter i PDF-punkter (D3)
+const MARKER_PT = 26; // ringmarkörens diameter i PDF-punkter (D3/M1)
+const MARKER_BAR_PT = 22; // markeringsstapelns höjd i PDF-punkter (M2)
+const MARKER_BAR_MIN_W = 0.02; // kortare svep än så räknas inte som en stapel
 const MARKER_TAP_MOVE = 12; // rörelse under detta = tryck, inte panorering
 
 export default function PdfViewer({
@@ -62,11 +64,14 @@ export default function PdfViewer({
   );
   // Vilket band verktygsknapparna (synlighet, riktning, inpassning) styr.
   const [activeBandIndex, setActiveBandIndex] = useState(0);
-  // Storleksmarkörer (D3): tryck-för-att-ringa-in per sida, {[sida]: [{x,y}]}
-  // i dokumentkoordinater (0–1). Inget schemabyte behövs — saknas fältet
-  // läses det som tomt, precis som D7:s lastMovedPage.
+  // Markörer (D3/M1/M2) per sida i dokumentkoordinater (0–1). Två former:
+  // ring {type:'ring',x,y} (tryck) och stapel {type:'bar',x,y,w} (svep över
+  // en instruktion). Äldre poster utan type läses som ring. Inget schemabyte —
+  // saknas fältet läses det som tomt, precis som D7:s lastMovedPage.
   const [markers, setMarkers] = useState(() => initialViewState?.markers ?? {});
   const [markerMode, setMarkerMode] = useState(false);
+  // Live-förhandsvisning av stapeln medan man sveper (M2); {x,y,w} eller null.
+  const [markerDraft, setMarkerDraft] = useState(null);
   // Fler bandverktyg (D2/D3): opt-in-åtgärder i en liten sheet så att
   // verktygsraden håller sig till en rad på en smal telefon.
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -296,6 +301,21 @@ export default function PdfViewer({
       const dy = e.clientY - gesture.startY;
       gesture.totalDx = dx;
       gesture.totalDy = dy;
+
+      // Markörläget (M2): ett horisontellt svep målar en markeringsstapel i
+      // stället för att panorera; ett vertikalt svep panorerar som vanligt så
+      // man kan nå en annan rad när man zoomat in. Axeln låses när fingret
+      // passerat tröskeln så gesten inte hoppar mellan lägena.
+      if (markerModeRef.current) {
+        if (gesture.markerAxis == null && Math.hypot(dx, dy) >= MARKER_TAP_MOVE) {
+          gesture.markerAxis = Math.abs(dx) > Math.abs(dy) ? 'bar' : 'pan';
+        }
+        if (gesture.markerAxis === 'bar') {
+          setMarkerDraft(draftBarFrom(gesture.startX, gesture.startY, e.clientX));
+          return;
+        }
+      }
+
       setScroll(clampOffsets(zoomRef.current, gesture.startScroll.x + dx, gesture.startScroll.y + dy));
     } else if (gesture.type === 'pinch' && pointersRef.current.size >= 2) {
       const [a, b] = [...pointersRef.current.values()];
@@ -320,13 +340,20 @@ export default function PdfViewer({
         const { totalDx, totalDy } = gesture;
         const moved = Math.hypot(totalDx, totalDy);
 
-        // Markörläget (D3): ett tryck ringar in (eller suddar) storleken.
-        // Svep och dubbeltryck är avstängda så man inte råkar byta sida.
+        // Markörläget (D3/M2): ett tryck ringar in (eller suddar); ett
+        // horisontellt svep lägger en markeringsstapel. Sidbyte via svep och
+        // dubbeltryck är avstängda så man aldrig råkar byta sida.
         if (markerModeRef.current) {
-          // toggleMarkerAt rapporterar själv de nya markörerna; en ren
-          // panorering sparar i stället scrollpositionen.
-          if (moved < MARKER_TAP_MOVE) toggleMarkerAt(e.clientX, e.clientY);
-          else reportState();
+          if (gesture.markerAxis === 'bar') {
+            // toggleMarkerAt/commitBar rapporterar själva de nya markörerna;
+            // en ren (vertikal) panorering sparar i stället scrollpositionen.
+            commitBar(gesture.startX, gesture.startY, e.clientX);
+            setMarkerDraft(null);
+          } else if (moved < MARKER_TAP_MOVE) {
+            toggleMarkerAt(e.clientX, e.clientY);
+          } else {
+            reportState();
+          }
           gestureRef.current = null;
           return;
         }
@@ -511,36 +538,80 @@ export default function PdfViewer({
     setBandAt(index, nextBand);
   }
 
-  // ---------- Storleksmarkörer (D3) ----------
-  // Ett tryck i markörläget ringar in punkten; ett tryck på en befintlig
-  // markör suddar den. Positionen lagras som andel (0–1) i dokument-
-  // koordinater precis som bandet, så ringen sitter kvar på samma siffra
-  // vid zoom och sidbyte.
-  function toggleMarkerAt(clientX, clientY) {
+  // ---------- Markörer (D3/M1/M2) ----------
+  // Allt lagras som andel (0–1) i dokumentkoordinater precis som bandet, så
+  // markören sitter kvar på samma siffra/rad vid zoom och sidbyte.
+
+  // Klient- → dokumentkoordinater. Delad av ring (tryck) och stapel (svep).
+  function clientToDocFrac(clientX, clientY) {
     const base = baseCssRef.current;
-    const info = pageInfoRef.current;
-    if (!base || !info) return;
+    if (!base) return null;
     const rect = viewportRef.current.getBoundingClientRect();
     const pageW = base.w * zoomRef.current;
     const pageH = base.h * zoomRef.current;
-    const fx = clamp01((clientX - rect.left - scrollRef.current.x) / pageW);
-    const fy = clamp01((clientY - rect.top - scrollRef.current.y) / pageH);
-    const page = pageNumRef.current;
-    const list = markersRef.current[page] || [];
-    // Träffprövning i punkter (zoomoberoende): inom markörens radie = sudda
+    return {
+      fx: clamp01((clientX - rect.left - scrollRef.current.x) / pageW),
+      fy: clamp01((clientY - rect.top - scrollRef.current.y) / pageH),
+    };
+  }
+
+  // Träffprövning i punkter (zoomoberoende) för sudda-på-tryck. Ringen är en
+  // cirkel kring (x,y); stapeln en rektangel (bredd w, höjd MARKER_BAR_PT).
+  function markerHit(m, fx, fy, info) {
+    if (m.type === 'bar') {
+      const dxFrac = Math.abs(m.x - fx);
+      const dyPt = Math.abs(m.y - fy) * info.heightPt;
+      return dxFrac <= m.w / 2 && dyPt <= (MARKER_BAR_PT / 2) * 1.2;
+    }
     const rPt = MARKER_PT / 2;
-    const hit = list.findIndex((m) => {
-      const dxPt = (m.x - fx) * info.widthPt;
-      const dyPt = (m.y - fy) * info.heightPt;
-      return Math.hypot(dxPt, dyPt) <= rPt * 1.2;
-    });
-    const nextList = hit >= 0 ? list.filter((_, i) => i !== hit) : [...list, { x: fx, y: fy }];
+    const dxPt = (m.x - fx) * info.widthPt;
+    const dyPt = (m.y - fy) * info.heightPt;
+    return Math.hypot(dxPt, dyPt) <= rPt * 1.2;
+  }
+
+  function saveMarkers(page, nextList) {
     const nextMarkers = { ...markersRef.current };
     if (nextList.length) nextMarkers[page] = nextList;
     else delete nextMarkers[page];
-    if (navigator.vibrate) navigator.vibrate(hit >= 0 ? 4 : 8);
     setMarkers(nextMarkers);
     reportState({ markers: nextMarkers });
+  }
+
+  // Ett tryck ringar in punkten; ett tryck på en befintlig markör (ring
+  // eller stapel) suddar den.
+  function toggleMarkerAt(clientX, clientY) {
+    const info = pageInfoRef.current;
+    const frac = clientToDocFrac(clientX, clientY);
+    if (!info || !frac) return;
+    const page = pageNumRef.current;
+    const list = markersRef.current[page] || [];
+    const hit = list.findIndex((m) => markerHit(m, frac.fx, frac.fy, info));
+    const nextList =
+      hit >= 0 ? list.filter((_, i) => i !== hit) : [...list, { type: 'ring', x: frac.fx, y: frac.fy }];
+    if (navigator.vibrate) navigator.vibrate(hit >= 0 ? 4 : 8);
+    saveMarkers(page, nextList);
+  }
+
+  // Räkna fram en stapel (mitt-x, y, bredd) från svepets start- och slut-x.
+  // y tas från startpunkten så stapeln ligger vågrätt på raden man svepte.
+  function draftBarFrom(startClientX, startClientY, endClientX) {
+    const a = clientToDocFrac(startClientX, startClientY);
+    const b = clientToDocFrac(endClientX, startClientY);
+    if (!a || !b) return null;
+    const x1 = Math.min(a.fx, b.fx);
+    const x2 = Math.max(a.fx, b.fx);
+    return { x: (x1 + x2) / 2, y: a.fy, w: x2 - x1 };
+  }
+
+  // Lägg stapeln på plats vid släpp; för korta svep ignoreras (var nog ett
+  // tryck som gled). Rapporterar de nya markörerna.
+  function commitBar(startClientX, startClientY, endClientX) {
+    const bar = draftBarFrom(startClientX, startClientY, endClientX);
+    if (!bar || bar.w < MARKER_BAR_MIN_W) return;
+    const page = pageNumRef.current;
+    const list = markersRef.current[page] || [];
+    if (navigator.vibrate) navigator.vibrate(8);
+    saveMarkers(page, [...list, { type: 'bar', ...bar }]);
   }
 
   // ---------- Render ----------
@@ -552,6 +623,7 @@ export default function PdfViewer({
   const bandList = band2 ? [band, band2] : [band];
   const pageMarkers = markers[pageNum] || [];
   const markerDiaCss = MARKER_PT * cssPerPt;
+  const markerBarHCss = MARKER_BAR_PT * cssPerPt;
 
   return (
     <div className="pdf-container">
@@ -594,19 +666,45 @@ export default function PdfViewer({
                 />
               );
             })}
-            {pageMarkers.map((m, i) => (
+            {pageMarkers.map((m, i) =>
+              m.type === 'bar' ? (
+                <div
+                  key={i}
+                  className={`marker marker-bar ${markerMode ? 'marker-editable' : ''}`}
+                  style={{
+                    left: `${(m.x - m.w / 2) * pageCssW}px`,
+                    top: `${m.y * pageCssH - markerBarHCss / 2}px`,
+                    width: `${m.w * pageCssW}px`,
+                    height: `${markerBarHCss}px`,
+                  }}
+                  aria-hidden="true"
+                />
+              ) : (
+                <div
+                  key={i}
+                  className={`marker marker-ring ${markerMode ? 'marker-editable' : ''}`}
+                  style={{
+                    left: `${m.x * pageCssW - markerDiaCss / 2}px`,
+                    top: `${m.y * pageCssH - markerDiaCss / 2}px`,
+                    width: `${markerDiaCss}px`,
+                    height: `${markerDiaCss}px`,
+                  }}
+                  aria-hidden="true"
+                />
+              )
+            )}
+            {markerDraft && markerDraft.w > 0 && (
               <div
-                key={i}
-                className={`size-marker ${markerMode ? 'size-marker-editable' : ''}`}
+                className="marker marker-bar marker-draft"
                 style={{
-                  left: `${m.x * pageCssW - markerDiaCss / 2}px`,
-                  top: `${m.y * pageCssH - markerDiaCss / 2}px`,
-                  width: `${markerDiaCss}px`,
-                  height: `${markerDiaCss}px`,
+                  left: `${(markerDraft.x - markerDraft.w / 2) * pageCssW}px`,
+                  top: `${markerDraft.y * pageCssH - markerBarHCss / 2}px`,
+                  width: `${markerDraft.w * pageCssW}px`,
+                  height: `${markerBarHCss}px`,
                 }}
                 aria-hidden="true"
               />
-            ))}
+            )}
           </div>
         )}
         {!baseCss && !renderError && <div className="pdf-status">Laddar mönster …</div>}
@@ -640,7 +738,7 @@ export default function PdfViewer({
           </>
         ) : markerMode ? (
           <>
-            <span className="band-fit-label">Tryck på din storlek – tryck igen för att sudda</span>
+            <span className="band-fit-label">Tryck ringar in, svep markerar en rad – tryck igen för att sudda</span>
             <span className="pdf-toolbar-spacer" />
             <button className="band-fit-done" onClick={() => setMarkerMode(false)}>
               Klar
@@ -732,7 +830,7 @@ export default function PdfViewer({
                   className="btn-icon"
                   onClick={() => setToolsOpen(true)}
                   aria-label="Fler bandverktyg"
-                  title="Andra band och storleksmarkör"
+                  title="Andra band och markör"
                 >
                   <MoreIcon />
                 </button>
@@ -777,9 +875,10 @@ export default function PdfViewer({
                 setMarkerMode(true);
               }}
             >
-              Märk din storlek
+              Markera
               <span className="menu-item-meta">
-                Ringa in din siffra i ”56 (60, 64, 68)” – tryck igen för att sudda
+                Ringa in en siffra (t.ex. din storlek i ”56 (60, 64, 68)”) eller svep
+                över en instruktion du vill hålla koll på – tryck igen för att sudda
               </span>
             </button>
           </div>

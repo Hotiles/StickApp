@@ -196,6 +196,18 @@ pill boundaries + tick animation + haptic receipt, and minus one
 expand away), and the chevron affordances are small — acceptable under
 the stated "tight UI over big targets" priority.
 
+**Landscape strip void fix** *(same month, from a user photo)*: in
+landscape the collapsed strip is a full-height column on the right edge.
+The first cut pinned the value pills to the top (`justify-content:
+flex-start`) and the expand chevron to the bottom (`margin-top: auto`),
+which left a large empty void between them — three tiny pills stranded in
+the top corner made the whole right side read as "pushed right, space
+unused" (the exact words of the report). Fix: centre the pills + chevron
+as one tight vertical group (`justify-content: center`, chevron sits
+right under the last pill). The column stays 46 pt wide (measured — not a
+width bug), the PDF keeps the rest, and the values now sit at eye level
+instead of the corner. Portrait strip unchanged.
+
 ## 6. Recommendation
 
 Ship **D (landscape side-dock) + §4 (general trim)** as one change:

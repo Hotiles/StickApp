@@ -891,11 +891,19 @@ input[type='range'] {
 .pdf-toolbar {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
+  gap: 2px;
+  padding: 2px 6px;
   background: var(--bg);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+/* Banden och markörverktygen kan bli många (D2/D3) — låt ikonerna krympa
+   en aning i verktygsraden så de får plats på en smal telefon. */
+.pdf-toolbar .btn-icon {
+  min-width: 40px;
 }
 
 .pdf-pageinfo {
@@ -993,6 +1001,40 @@ input[type='range'] {
   box-shadow: 0 1px 3px rgba(61, 52, 54, 0.25);
 }
 
+/* Aktivt band-väljaren (D2): färgprick + siffra visar vilket band knapparna
+   styr; ett tryck växlar. Visas bara när det finns två band. */
+.band-select {
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-dim);
+}
+
+.band-select-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(61, 52, 54, 0.25);
+}
+
+/* ===== Storleksmarkörer (D3) ===== */
+/* Ringen sitter i dokumentkoordinater (som bandet) och skalar med zoomen,
+   så den håller sig runt samma siffra. Tryck går genom till mönstret som
+   lägger till eller suddar — därför pointer-events: none. */
+.size-marker {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2.5px solid rgba(224, 138, 46, 0.92);
+  background: rgba(255, 198, 120, 0.18);
+  pointer-events: none;
+}
+
+.size-marker-editable {
+  border-style: dashed;
+  background: rgba(255, 198, 120, 0.28);
+}
+
 /* ===== Bandet ===== */
 .band-overlay {
   position: absolute;
@@ -1020,7 +1062,7 @@ input[type='range'] {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: rgba(244, 194, 219, 0.95);
+  background: rgba(var(--band-color, 244, 194, 219), 0.95);
   border: 2px solid #fff;
   box-shadow: 0 1px 4px rgba(61, 52, 54, 0.3);
   right: 6px;

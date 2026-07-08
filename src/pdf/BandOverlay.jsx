@@ -10,6 +10,9 @@ import { useRef, useState } from 'react';
  * Tjockleken justeras i inpassningsläget (D6) via verktygsraden — inte
  * här. I det läget (fitting) får bandet skarpare kantlinjer så att man
  * ser exakt vilka kanter man passar mot diagramraden.
+ *
+ * Färgen (D2) kommer utifrån så att två band kan skiljas åt — den styr
+ * både bandet och draghandtaget via CSS-variabeln --band-color.
  */
 export const BAND_COLOR = '244, 194, 219';
 
@@ -18,6 +21,7 @@ export default function BandOverlay({
   position, // 0–1, andel av sidhöjd (horisontell) eller sidbredd (vertikal)
   thicknessCss, // bandets tjocklek i CSS-pixlar vid aktuell zoom
   opacity,
+  color = BAND_COLOR, // rgb utan alfa, t.ex. '244, 194, 219'
   pageCssWidth,
   pageCssHeight,
   fitting = false, // inpassningsläget aktivt
@@ -102,7 +106,7 @@ export default function BandOverlay({
       className={`band-overlay ${horizontal ? 'band-h' : 'band-v'} ${
         dragPos != null ? 'band-dragging' : ''
       } ${fitting ? 'band-fitting' : ''}`}
-      style={{ ...style, background: `rgba(${BAND_COLOR}, ${opacity})` }}
+      style={{ ...style, '--band-color': color, background: `rgba(${color}, ${opacity})` }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

@@ -1521,11 +1521,14 @@ input[type='range'] {
     border-radius: var(--radius);
   }
 
-  /* Kompaktremsan blir en smal stående remsa på högerkanten */
+  /* Kompaktremsan blir en smal stående remsa på högerkanten. Pillarna
+     och chevronen centreras som en tight grupp — annars klumpas
+     värdena i övre hörnet med en stor tom void ner till chevronen,
+     vilket får hela högersidan att se oanvänd ut. */
   .project-view > .counter-strip {
     grid-area: counters;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 8px;
     width: calc(46px + env(safe-area-inset-right, 0px));
     padding: 8px calc(4px + env(safe-area-inset-right, 0px)) calc(8px + var(--safe-bottom)) 4px;
@@ -1551,8 +1554,10 @@ input[type='range'] {
     display: none;
   }
 
+  /* Chevronen sitter direkt under sista pillen som en del av gruppen,
+     inte fastklistrad i botten (margin-top: auto skapade voiden) */
   .project-view .counter-strip-expand {
-    margin-top: auto;
+    margin-top: 2px;
     padding: 8px 4px;
   }
 

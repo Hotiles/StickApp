@@ -1,4 +1,4 @@
-import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
+import { Zip, ZipPassThrough, unzipSync, strToU8, strFromU8 } from 'fflate';
 import { dumpAll, replaceAll, writeMerged, updateSettings, deleteBlobHard, now } from './storage.js';
 import { mergeDump } from './merge.js';
 
@@ -9,6 +9,10 @@ export const BACKUP_FORMAT_VERSION = 1;
  *   data.json     – all strukturerad data + blob-metadata
  *   blobs/<id>    – varje PDF/foto som egen fil
  */
+
+// Hur mycket zip-utdata vi buffrar i JS-heapen innan vi viker in det i en
+// (disk-backad) Blob. Håller minnestoppen låg på iOS oavsett bibliotekets storlek.
+const BACKUP_FLUSH_BYTES = 4 * 1024 * 1024;
 
 export async function createBackupZip() {
   const { folders, patterns, projects, persons, yarns, settings, blobRecords } = await dumpAll();
@@ -26,15 +30,54 @@ export async function createBackupZip() {
     blobs: blobRecords.map(({ id, type, size, createdAt }) => ({ id, type, size, createdAt })),
   };
 
-  const files = { 'data.json': strToU8(JSON.stringify(data, null, 2)) };
-  for (const record of blobRecords) {
-    const buf = new Uint8Array(await record.blob.arrayBuffer());
-    files[`blobs/${record.id}`] = buf;
-  }
+  // Streama zip:en istället för att bygga hela biblioteket i minnet på en gång.
+  // Varje blob läses in, matas till zip-strömmen och släpps innan nästa läses —
+  // och utdatan viks löpande in i en växande Blob, som webbläsaren backar på
+  // disk. Toppminnet blir då ~största enskilda filen, inte hela biblioteket.
+  let outBlob = new Blob([], { type: 'application/zip' });
+  let pending = [];
+  let pendingBytes = 0;
+  const flush = () => {
+    if (!pending.length) return;
+    outBlob = new Blob([outBlob, ...pending], { type: 'application/zip' });
+    pending = [];
+    pendingBytes = 0;
+  };
 
-  const zipped = zipSync(files, { level: 0 }); // PDF/JPEG är redan komprimerade
+  await new Promise((resolve, reject) => {
+    const zip = new Zip((err, chunk, final) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      if (chunk) {
+        pending.push(chunk);
+        pendingBytes += chunk.length;
+        if (pendingBytes >= BACKUP_FLUSH_BYTES) flush();
+      }
+      if (final) resolve();
+    });
+
+    (async () => {
+      try {
+        const dataEntry = new ZipPassThrough('data.json'); // store — JSON är litet, PDF/JPEG redan komprimerade
+        zip.add(dataEntry);
+        dataEntry.push(strToU8(JSON.stringify(data, null, 2)), true);
+        for (const record of blobRecords) {
+          const entry = new ZipPassThrough(`blobs/${record.id}`);
+          zip.add(entry);
+          entry.push(new Uint8Array(await record.blob.arrayBuffer()), true);
+        }
+        zip.end();
+      } catch (e) {
+        reject(e);
+      }
+    })();
+  });
+
+  flush();
   const stamp = new Date().toISOString().slice(0, 10);
-  return new File([zipped], `stickan-backup-${stamp}.zip`, { type: 'application/zip' });
+  return new File([outBlob], `stickan-backup-${stamp}.zip`, { type: 'application/zip' });
 }
 
 export async function exportBackup() {

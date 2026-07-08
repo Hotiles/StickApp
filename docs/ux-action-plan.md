@@ -213,10 +213,14 @@ after. Never ship the wrap-up card while the stats still lie.
 
 Not a UX group, but the review flags it and it guards everything else:
 
-- **Backup memory limits on iOS** — the review: "fix that one before
-  someone's pattern collection depends on it." Stream the zip instead of
-  building it in memory. This protects the only safety net and rises in
-  urgency as D4 grows libraries.
+- **Backup memory limits on iOS** ✅ *(shipped July 2026)* — the review: "fix
+  that one before someone's pattern collection depends on it." `createBackupZip`
+  now streams via fflate's `Zip`/`ZipPassThrough`: each blob is read, fed to the
+  zip stream and released before the next, and output is folded into a growing
+  (disk-backed) Blob rather than one contiguous in-memory array. Peak memory is
+  ~the largest single file, not the whole library. Round-trip + flush-threshold
+  tests in `storage/backup.test.js`. This protects the only safety net before
+  D4 grows libraries.
 - **Migrations + merge tests** for every schema change above (statuses,
   dates, sequences, multi-file). Each workstream lands with its migration and
   a `merge.js` test, so the deferred cloud sync stays viable.
@@ -256,7 +260,7 @@ reviewer and ask for the re-review against her own Tier 1 list (§5).
   standalone against the single-file model — which turned out to be the
   only model users need)*
 - D2 Second band + D3 size marker
-- Workstream 0: streamed backups (before libraries grow)
+- Workstream 0: streamed backups ✅ *(shipped July 2026 — before libraries grow)*
 
 ### Release 3 — "The ecosystem" *(Tier 3)*
 - A3 Statuses (vilar / rivdes upp)

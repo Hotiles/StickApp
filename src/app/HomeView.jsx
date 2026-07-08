@@ -101,29 +101,37 @@ export default function HomeView() {
               <p className="empty-state-hint">Tryck på ”Nytt projekt” för att komma igång!</p>
             </div>
           ) : (
-            <ul className="card-list">
+            // Rutnät (H1): kompakta tiles så fler projekt syns och genvägarna
+            // nedanför inte trycks bort. Bilden identifierar projektet, namnet
+            // och aktuellt varv följer med. Samma auto-fill-grid som sidgalleriet.
+            <ul className="project-grid">
               {restProjects.map((p) => (
                 <li key={p.id}>
                   <button
-                    className="project-card"
+                    className="project-tile"
                     style={{ '--project-color': yarnColorValue(p.color) }}
                     onClick={() => navigate(`/projekt/${p.id}`)}
                   >
-                    {p.patternId && patternById[p.patternId] && (
-                      <PatternThumb pattern={patternById[p.patternId]} className="project-card-thumb" />
-                    )}
-                    <span className="project-card-name">
-                      {p.name}
+                    <span className="project-tile-thumb">
+                      {p.patternId && patternById[p.patternId] ? (
+                        <PatternThumb pattern={patternById[p.patternId]} className="project-tile-img" />
+                      ) : (
+                        <YarnBall />
+                      )}
                       {p.deadline && (
-                        <span className="project-card-deadline">
+                        <span className="project-tile-deadline">
                           <DeadlineBadge deadline={p.deadline} label={p.deadlineLabel} />
                         </span>
                       )}
                     </span>
-                    <span className="project-card-meta">
-                      {p.counters?.[0] ? `${p.counters[0].label}: ${p.counters[0].value}` : ''}
+                    <span className="project-tile-body">
+                      <span className="project-tile-name">{p.name}</span>
+                      {p.counters?.[0] && (
+                        <span className="project-tile-meta">
+                          {p.counters[0].label}: {p.counters[0].value}
+                        </span>
+                      )}
                     </span>
-                    <span className="project-card-arrow">›</span>
                   </button>
                 </li>
               ))}

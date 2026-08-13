@@ -640,6 +640,93 @@ input[type='range'] {
   color: var(--accent-strong);
 }
 
+/* Lägesväxlare (Minska / Öka) — en segmenterad kontroll */
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.mode-toggle-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-weight: 650;
+  padding: 10px;
+  border-radius: calc(var(--radius) - 6px);
+  cursor: pointer;
+}
+
+.mode-toggle-btn.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+/* Förslagskort */
+.suggestion-head {
+  margin-bottom: 12px;
+}
+
+.suggestion .section-title {
+  margin-bottom: 2px;
+}
+
+.suggestion-hint {
+  margin: 0;
+}
+
+.suggestion-text {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  font-size: 19px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+/* Maskrad-remsa: släta grupper som brickor, åtgärderna markerade */
+.stitch-strip {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stitch-seg {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.stitch-knit {
+  padding: 4px 8px;
+  background: var(--bg);
+  color: var(--text-dim);
+}
+
+.stitch-op {
+  padding: 4px 8px;
+  background: var(--accent-strong);
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .stitch-op {
+    color: #2b1420;
+  }
+}
+
 /* ===== Ditt stickår ===== */
 .stat-hero {
   display: flex;

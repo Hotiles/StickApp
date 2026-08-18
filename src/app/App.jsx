@@ -14,6 +14,7 @@ const FinishedGallery = lazy(() => import('../projects/FinishedGallery.jsx'));
 const ProjectDetails = lazy(() => import('../projects/ProjectDetails.jsx'));
 const Settings = lazy(() => import('../settings/Settings.jsx'));
 const GaugeCalculator = lazy(() => import('../tools/GaugeCalculator.jsx'));
+const DistributeCalculator = lazy(() => import('../tools/DistributeCalculator.jsx'));
 const Measurements = lazy(() => import('../tools/Measurements.jsx'));
 const YarnStash = lazy(() => import('../tools/YarnStash.jsx'));
 const Stats = lazy(() => import('../tools/Stats.jsx'));
@@ -45,6 +46,7 @@ function Route({ path }) {
   if ((params = matchPath('/fardiga/:id', path))) return <ProjectDetails projectId={params.id} />;
   if (path === '/installningar') return <Settings />;
   if (path === '/masktathet') return <GaugeCalculator />;
+  if (path === '/oka-minska') return <DistributeCalculator />;
   if (path === '/matt') return <Measurements />;
   if (path === '/garn') return <YarnStash />;
   if (path === '/statistik') return <Stats />;

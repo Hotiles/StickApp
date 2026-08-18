@@ -169,6 +169,12 @@ export default function HomeView() {
             </span>
             Masktäthet
           </button>
+          <button className="shortcut" onClick={() => navigate('/oka-minska')}>
+            <span className="shortcut-icon">
+              <PlusMinusIcon />
+            </span>
+            Öka &amp; minska
+          </button>
           <button className="shortcut" onClick={() => navigate('/matt')}>
             <span className="shortcut-icon">
               <PersonIcon />
@@ -239,6 +245,16 @@ function RulerIcon() {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
       <rect x="2" y="8" width="20" height="8" rx="2" />
       <path d="M6 8v3M10 8v4M14 8v3M18 8v4" />
+    </svg>
+  );
+}
+
+function PlusMinusIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M6 7h5M8.5 4.5v5" strokeLinecap="round" />
+      <path d="M13 16.5h5" strokeLinecap="round" />
+      <path d="M4 20 20 4" strokeLinecap="round" opacity="0.45" />
     </svg>
   );
 }

@@ -38,6 +38,9 @@ stannar på enheten.
 - **Garnkorgen** — inventarie över garnet hemma med foto, färg och mängd.
 - **Måttbanken** — personer och deras mått ("mammas fotlängd 24 cm").
 - **Masktäthet** — provlapp + önskat mått → maskor och varv.
+- **Öka & minska** — fördela ökningar/minskningar jämnt över ett varv med
+  två förslag: det enklaste (kort upprepning) och det mest balanserade
+  (jämnt spritt med hela maskor kvar i kanterna).
 - **Ditt stickår** — statistik: färdiga projekt, räknade varv, foton m.m.
 
 ## Teknik
